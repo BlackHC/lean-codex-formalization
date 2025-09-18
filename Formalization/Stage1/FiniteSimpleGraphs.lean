@@ -22,6 +22,37 @@ def graphOfEdgeFinset (n : ℕ) (edges : Finset (Sym2 (Fin n))) :
     SimpleGraph (Fin n) :=
   SimpleGraph.fromEdgeSet (edges : Set (Sym2 (Fin n)))
 
+lemma graphOfEdgeFinset_edgeSet_subset {n : ℕ}
+    (edges : Finset (Sym2 (Fin n))) :
+    (graphOfEdgeFinset n edges).edgeSet ⊆ (edges : Set (Sym2 (Fin n))) := by
+  intro e he
+  classical
+  have hmem :
+      e ∈ (edges : Set (Sym2 (Fin n))) ∧
+        e ∉ {f : Sym2 (Fin n) | f.IsDiag} := by
+    simpa [graphOfEdgeFinset, SimpleGraph.edgeSet_fromEdgeSet, Set.mem_diff]
+      using he
+  exact hmem.1
+
+lemma graphOfEdgeFinset_edgeSet_finite {n : ℕ}
+    (edges : Finset (Sym2 (Fin n))) :
+    ((graphOfEdgeFinset n edges).edgeSet).Finite := by
+  classical
+  exact (edges.finite_toSet.subset (graphOfEdgeFinset_edgeSet_subset edges))
+
+noncomputable instance instFintypeGraphOfEdgeFinsetEdgeSet {n : ℕ}
+    (edges : Finset (Sym2 (Fin n))) :
+    Fintype (graphOfEdgeFinset n edges).edgeSet :=
+  (graphOfEdgeFinset_edgeSet_finite edges).fintype
+
+instance instDecidableRel_graphOfEdgeFinsetAdj {n : ℕ}
+    (edges : Finset (Sym2 (Fin n))) :
+    DecidableRel (graphOfEdgeFinset n edges).Adj := by
+  classical
+  simpa [graphOfEdgeFinset] using
+    (inferInstance : DecidableRel
+      (SimpleGraph.fromEdgeSet (edges : Set (Sym2 (Fin n)))).Adj)
+
 @[simp]
 lemma graphOfEdgeFinset_adj {n : ℕ} {edges : Finset (Sym2 (Fin n))} {u v : Fin n} :
     (graphOfEdgeFinset n edges).Adj u v ↔ s(u, v) ∈ edges ∧ u ≠ v := by
@@ -58,12 +89,103 @@ lemma edgeCount_completeGraph (n : ℕ) :
 
 end EdgeCount
 
+/-- Stage 1 helper: the explicit `Finset` of edges used by
+`graphOfEdgeFinset` removes diagonal entries. -/
+@[simp]
+lemma edgeFinset_graphOfEdgeFinset {n : ℕ}
+    (edges : Finset (Sym2 (Fin n)))
+    [inst : Fintype (graphOfEdgeFinset n edges).edgeSet] :
+    (graphOfEdgeFinset n edges).edgeFinset
+      = edges.filter fun e => ¬ e.IsDiag := by
+  classical
+  haveI := inst
+  ext e
+  constructor
+  · intro he
+    have heSet : e ∈ (graphOfEdgeFinset n edges).edgeSet := by
+      simpa [SimpleGraph.edgeFinset] using he
+    have hePair :
+        e ∈ (edges : Set (Sym2 (Fin n))) ∧
+          e ∉ {f : Sym2 (Fin n) | f.IsDiag} := by
+      simpa [graphOfEdgeFinset, SimpleGraph.edgeSet_fromEdgeSet, Set.mem_diff]
+        using heSet
+    have heFin : e ∈ edges := by
+      simpa [Finset.mem_coe] using hePair.1
+    have heNoDiag : ¬ e.IsDiag := by
+      simpa [Set.mem_setOf_eq] using hePair.2
+    simp [Finset.mem_filter, heFin, heNoDiag]
+  · intro he
+    have heData := Finset.mem_filter.mp he
+    have heFin : e ∈ edges := heData.1
+    have heNoDiag : ¬ e.IsDiag := heData.2
+    have hePair :
+        e ∈ (edges : Set (Sym2 (Fin n))) ∧
+          e ∉ {f : Sym2 (Fin n) | f.IsDiag} := by
+      refine ⟨?_, ?_⟩
+      · simpa [Finset.mem_coe] using heFin
+      · simpa [Set.mem_setOf_eq] using heNoDiag
+    have heSet : e ∈ (graphOfEdgeFinset n edges).edgeSet := by
+      simpa [graphOfEdgeFinset, SimpleGraph.edgeSet_fromEdgeSet, Set.mem_diff]
+        using hePair
+    simpa [SimpleGraph.edgeFinset] using heSet
+
+@[simp]
+lemma edgeCount_graphOfEdgeFinset {n : ℕ}
+    (edges : Finset (Sym2 (Fin n))) :
+    edgeCount (graphOfEdgeFinset n edges)
+        = (edges.filter fun e => ¬ e.IsDiag).card := by
+  classical
+  have h := congrArg Finset.card
+    (edgeFinset_graphOfEdgeFinset (n := n) (edges := edges)
+      (inst := (graphOfEdgeFinset n edges).fintypeEdgeSet))
+  unfold edgeCount
+  exact h
+
+/-- Stage 1 helper: when the edge list contains no diagonals, the constructor
+realizes the expected edge count. -/
+lemma edgeCount_graphOfEdgeFinset_of_loopless {n : ℕ}
+    (edges : Finset (Sym2 (Fin n)))
+    (hdiag : ∀ e ∈ edges, ¬ e.IsDiag) :
+    edgeCount (graphOfEdgeFinset n edges) = edges.card := by
+  classical
+  have hfilter : edges.filter (fun e => ¬ e.IsDiag) = edges := by
+    ext e
+    by_cases hmem : e ∈ edges
+    · simp [Finset.mem_filter, hmem, hdiag _ hmem]
+    · simp [Finset.mem_filter, hmem]
+  simpa [hfilter] using
+    edgeCount_graphOfEdgeFinset (n := n) (edges := edges)
+
 /-- Sanity check: the complete graph on three labelled vertices has three edges. -/
 example : edgeCount (SimpleGraph.completeGraph (Fin 3)) = 3 := by
   classical
   have h := edgeCount_completeGraph (n := 3)
   have : Nat.choose 3 2 = 3 := by decide
   simpa [this] using h
+
+/-- Sanity check: constructing `K₃` with one edge removed via `graphOfEdgeFinset`
+records exactly two edges. -/
+example :
+    edgeCount
+        (graphOfEdgeFinset 3
+          {s((0 : Fin 3), (1 : Fin 3)), s((0 : Fin 3), (2 : Fin 3))})
+        = 2 := by
+  classical
+  have h01 : ¬ (s((0 : Fin 3), (1 : Fin 3))).IsDiag := by decide
+  have h02 : ¬ (s((0 : Fin 3), (2 : Fin 3))).IsDiag := by decide
+  have hdiag : ∀ e ∈ ({s((0 : Fin 3), (1 : Fin 3)),
+        s((0 : Fin 3), (2 : Fin 3))} : Finset (Sym2 (Fin 3))), ¬ e.IsDiag := by
+    intro e he
+    have : e = s((0 : Fin 3), (1 : Fin 3))
+        ∨ e = s((0 : Fin 3), (2 : Fin 3)) := by
+      simpa [Finset.mem_insert, Finset.mem_singleton] using he
+    cases this with
+    | inl h => simpa [h] using h01
+    | inr h => simpa [h] using h02
+  simpa using
+    edgeCount_graphOfEdgeFinset_of_loopless (n := 3)
+      (edges := {s((0 : Fin 3), (1 : Fin 3)), s((0 : Fin 3), (2 : Fin 3))})
+      hdiag
 
 /-- Stage 1 definition: the number of labelled copies of `H` inside `G` is the
 `Fintype` cardinality of graph embeddings from `H` to `G`. -/
