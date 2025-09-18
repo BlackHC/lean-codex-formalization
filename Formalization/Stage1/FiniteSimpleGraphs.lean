@@ -13,6 +13,7 @@ Lean formalization matches the intended combinatorial quantities.
 namespace Codex
 
 open SimpleGraph
+open Set
 
 /-- Stage 1 helper: build a labelled simple graph on `Fin n` from a finite list of
 unordered edges.  The constructor is defined via `SimpleGraph.fromEdgeSet`, so
@@ -126,5 +127,115 @@ example :
   simp [countCopies_completeGraph_fin]
 
 end CopyCounting
+
+section EdgeInduced
+
+variable {V : Type*}
+
+/-- Stage 1 construction: the edge-induced subgraph of `G` determined by a set of
+edges keeps precisely those edges of `G` lying in the set.  All vertices remain
+available because the paper's combinatorics works with labelled graphs. -/
+def edgeInducedSubgraph (G : SimpleGraph V) (E : Set (Sym2 V)) : SimpleGraph V where
+  Adj u v := G.Adj u v ∧ s(u, v) ∈ E
+  symm _ _ h := by
+    refine And.intro h.1.symm ?_
+    simpa [Sym2.eq_swap] using h.2
+  loopless v h := G.loopless v h.1
+
+noncomputable instance instDecidableRel_edgeInducedSubgraph (G : SimpleGraph V)
+    (E : Set (Sym2 V)) [DecidableRel G.Adj] :
+    DecidableRel (edgeInducedSubgraph G E).Adj := by
+  classical
+  intro u v
+  change Decidable (G.Adj u v ∧ s(u, v) ∈ E)
+  infer_instance
+
+@[simp]
+lemma edgeInducedSubgraph_adj {G : SimpleGraph V} {E : Set (Sym2 V)} {u v : V} :
+    (edgeInducedSubgraph G E).Adj u v ↔ G.Adj u v ∧ s(u, v) ∈ E := Iff.rfl
+
+lemma edgeInducedSubgraph_le (G : SimpleGraph V) (E : Set (Sym2 V)) :
+    edgeInducedSubgraph G E ≤ G := fun _ _ h => h.1
+
+lemma edgeInducedSubgraph_mono {G : SimpleGraph V} {E E' : Set (Sym2 V)}
+    (h : E ⊆ E') : edgeInducedSubgraph G E ≤ edgeInducedSubgraph G E' := by
+  intro u v hv
+  exact ⟨hv.1, h hv.2⟩
+
+@[simp]
+lemma edgeSet_edgeInducedSubgraph (G : SimpleGraph V) (E : Set (Sym2 V)) :
+    (edgeInducedSubgraph G E).edgeSet = G.edgeSet ∩ E := by
+  ext e
+  refine Sym2.inductionOn e ?_
+  intro u v
+  simp [edgeInducedSubgraph, Set.mem_inter_iff]
+
+@[simp]
+lemma edgeInducedSubgraph_sup (G : SimpleGraph V) (E F : Set (Sym2 V)) :
+    edgeInducedSubgraph G (E ∪ F)
+      = edgeInducedSubgraph G E ⊔ edgeInducedSubgraph G F := by
+  ext u v
+  simp [edgeInducedSubgraph, Set.mem_union, SimpleGraph.sup_adj, and_or_left]
+
+@[simp]
+lemma edgeInducedSubgraph_inf (G : SimpleGraph V) (E F : Set (Sym2 V)) :
+    edgeInducedSubgraph G (E ∩ F)
+      = edgeInducedSubgraph G E ⊓ edgeInducedSubgraph G F := by
+  ext u v
+  constructor
+  · intro h
+    rcases h with ⟨hadj, hmem⟩
+    rcases hmem with ⟨hE, hF⟩
+    exact ⟨⟨hadj, hE⟩, ⟨hadj, hF⟩⟩
+  · rintro ⟨⟨hadjE, hE⟩, ⟨_, hF⟩⟩
+    exact ⟨hadjE, ⟨hE, hF⟩⟩
+
+section EdgeCount
+
+variable [Fintype V]
+
+@[simp]
+lemma edgeCount_edgeInducedSubgraph {G : SimpleGraph V} [DecidableRel G.Adj]
+    (E : Finset (Sym2 V))
+    (hE : (E : Set (Sym2 V)) ⊆ G.edgeSet) :
+    edgeCount (edgeInducedSubgraph G (E : Set (Sym2 V))) = E.card := by
+  classical
+  have hEdgeSet :
+      (edgeInducedSubgraph G (E : Set (Sym2 V))).edgeSet = (E : Set (Sym2 V)) := by
+    simp [edgeSet_edgeInducedSubgraph, Set.inter_eq_right.mpr hE]
+  have hEdgeFinset :
+      (edgeInducedSubgraph G (E : Set (Sym2 V))).edgeFinset = E := by
+    simp [SimpleGraph.edgeFinset, hEdgeSet]
+  simp [edgeCount, hEdgeFinset]
+
+/-- Sanity check: removing one edge from `K₃` leaves a two-edge subgraph. -/
+example :
+    edgeCount
+        (edgeInducedSubgraph (SimpleGraph.completeGraph (Fin 3))
+          (({s((0 : Fin 3), (1 : Fin 3)), s((0 : Fin 3), (2 : Fin 3))} :
+              Finset (Sym2 (Fin 3))) : Set (Sym2 (Fin 3))))
+        = 2 := by
+  classical
+  have hsubset :
+      (({s((0 : Fin 3), (1 : Fin 3)), s((0 : Fin 3), (2 : Fin 3))} :
+          Finset (Sym2 (Fin 3))) : Set (Sym2 (Fin 3)))
+          ⊆ (SimpleGraph.completeGraph (Fin 3)).edgeSet := by
+    intro e he
+    have : e = s((0 : Fin 3), (1 : Fin 3)) ∨ e = s((0 : Fin 3), (2 : Fin 3)) := by
+      simpa [Finset.mem_coe] using he
+    rcases this with h | h <;> subst h <;>
+      simp [SimpleGraph.completeGraph]
+  have hcard :
+      ({s((0 : Fin 3), (1 : Fin 3)), s((0 : Fin 3), (2 : Fin 3))} :
+          Finset (Sym2 (Fin 3))).card = 2 := by decide
+  simpa [hcard] using
+    edgeCount_edgeInducedSubgraph
+      (G := SimpleGraph.completeGraph (Fin 3))
+      (E := {s((0 : Fin 3), (1 : Fin 3)), s((0 : Fin 3), (2 : Fin 3))})
+      hsubset
+
+end EdgeCount
+
+end EdgeInduced
 
 end Codex
