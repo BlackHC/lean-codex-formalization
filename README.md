@@ -47,7 +47,7 @@ Key tasks and Lean checks:
    - Provide automation lemmas showing the closure of subgraphs under intersection/union when needed for counting arguments.
    - Use Lean's rewriting tools (`by_cases`, `simp`, `finset.induction`) to verify every structural property, recording each as a lemma reusable in later stages.
 
-*Status (Stage 1):* We now have Stage 1 utilities in `Formalization/Stage1/FiniteSimpleGraphs.lean` that build graphs from explicit edge sets and prove basic edge-count lemmas (including the monotonicity of `edgeCount` and the `n.choose 2` edge count for complete graphs).  Edge-induced subgraphs, along with union/intersection closure lemmas and finite edge-count computations, are available to support the upcoming copy-counting and subgraph arguments.
+*Status (Stage 1):* We now have Stage 1 utilities in `Formalization/Stage1/FiniteSimpleGraphs.lean` that build graphs from explicit edge sets and prove basic edge-count lemmas (including the monotonicity of `edgeCount` and the `n.choose 2` edge count for complete graphs).  Edge-induced subgraphs, along with union/intersection closure lemmas and finite edge-count computations, are available to support the upcoming copy-counting and subgraph arguments.  Additionally, the new copy-counting lemmas confirm that isomorphic pattern or host graphs yield identical enumerations of labelled embeddings.
 
 ### Stage 2 — Random Graph Model and Expectations
 
