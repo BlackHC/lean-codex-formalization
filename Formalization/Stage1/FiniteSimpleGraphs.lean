@@ -248,6 +248,47 @@ example :
   classical
   simp [countCopies_completeGraph_fin]
 
+/-- Stage 1 lemma: isomorphic host graphs admit equally many labelled copies. -/
+lemma countCopies_congr_right {H : SimpleGraph α}
+    {G G' : SimpleGraph β} (e : G ≃g G') :
+    countCopies H G = countCopies H G' := by
+  classical
+  refine Fintype.card_congr ?_
+  refine
+    { toFun := fun f => e.toEmbedding.comp f
+      invFun := fun f => e.symm.toEmbedding.comp f
+      left_inv := ?_
+      right_inv := ?_ }
+  · intro f; ext v; simp
+  · intro f; ext v; simp
+
+/-- Stage 1 lemma: isomorphic pattern graphs yield the same copy count in any
+ambient host. -/
+lemma countCopies_congr_left {H H' : SimpleGraph α}
+    {G : SimpleGraph β} (e : H ≃g H') :
+    countCopies H G = countCopies H' G := by
+  classical
+  refine Fintype.card_congr ?_
+  refine
+    { toFun := fun f => f.comp e.symm.toEmbedding
+      invFun := fun f => f.comp e.toEmbedding
+      left_inv := ?_
+      right_inv := ?_ }
+  · intro f; ext v; simp
+  · intro f; ext v; simp
+
+/-- Sanity check: permuting the vertices of `K₂` does not affect copy counts. -/
+example :
+    countCopies (SimpleGraph.completeGraph (Fin 2))
+        (SimpleGraph.completeGraph (Fin 3))
+      = countCopies (SimpleGraph.completeGraph (Fin 2))
+        (SimpleGraph.completeGraph (Fin 3)) := by
+  classical
+  simpa using
+    countCopies_congr_left
+      (G := SimpleGraph.completeGraph (Fin 3))
+      (e := SimpleGraph.Iso.completeGraph (Equiv.swap (0 : Fin 2) 1))
+
 end CopyCounting
 
 section EdgeInduced
