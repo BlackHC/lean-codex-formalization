@@ -1,0 +1,15 @@
+# Project metadata for linting support.
+# The packages listed here are required to build and run `lake exe lint`
+# as provided by mathlib.
+[lint]
+packages = [
+  "leanprover-community/mathlib",
+  "leanprover-community/proofwidgets",
+  "leanprover-community/aesop",
+  "leanprover-community/Qq",
+  "leanprover-community/import-graph",
+  "leanprover-community/LeanSearchClient",
+  "leanprover-community/plausible",
+  "leanprover-community/batteries",
+  "leanprover/lean4-cli"
+]
