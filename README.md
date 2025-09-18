@@ -141,7 +141,7 @@ Lean tasks:
 - Attach validation lemmas/examples to every new definition to show it behaves correctly on toy instances.
 - After significant additions, run `lake build` (and `lake test` if a test harness is added) to ensure the code compiles.
 - Maintain documentation within Lean files (`/-! ### ... -/` blocks) describing the relationship between the formal proofs and the paper's arguments.
-- Use `#lint` (or `lake exe lint` when available) to catch missing `simp`/`instance` lemmas and guarantee all intermediate statements are fully verified.
+- Use `#lint` to catch missing `simp`/`instance` lemmas and guarantee all intermediate statements are fully verified.
 
 ## Next Steps
 
