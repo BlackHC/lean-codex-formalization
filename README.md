@@ -24,6 +24,8 @@ that guarantee the mechanized statements coincide with those of the paper.
 - Create a scratch file (e.g., `Formalization/Scratch.lean`) for experiments before incorporating statements into the main hierarchy.
 - **Verification approach.** Maintain a `#check`/`#eval` scratchpad for each new definition before moving it into the hierarchy. Run `#lint` after every stage to confirm there are no unused definitions or missing proofs.
 
+*Status (Stage 0):* The namespace `Codex` now lives in `Formalization/Basic.lean`, accompanied by a trivial `SimpleGraph` sanity check so future imports confirm access to `mathlib`.  A dedicated scratchpad (`Formalization/Scratch.lean`) is available for experiments.  Fetching external dependencies still requires a successful `lake update`; the current execution environment returned a transient network error, so the command should be retried during the next working session.
+
 ### Stage 1 — Graph-Theoretic Foundations
 
 Goal: formalize the deterministic combinatorial ingredients used across the paper.

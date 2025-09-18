@@ -13,6 +13,7 @@ These instructions apply to the entire repository. Update this file if new subdi
 ## Workflow Requirements
 
 - **Dependencies:** Before pushing significant Lean changes, verify that the dependency configuration in `lakefile.lean` imports `mathlib` and run `lake update` if new packages are added.
+  - The container bootstrap already runs `lake update`, `lake exe cache get`, and `lake build`, so cached dependencies should be ready unless you introduce new requirements.
 - **Build checks:** Run `lake build` after modifying Lean files. Record the command in the PR/testing notes.
 - **Linting:** Execute `#lint` (or `lake exe lint` when available) before each commit to confirm that the intermediate results are fully verified and there are no unintentional omissions.
 - **File organization:**
