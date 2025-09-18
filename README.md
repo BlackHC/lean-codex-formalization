@@ -47,6 +47,8 @@ Key tasks and Lean checks:
    - Provide automation lemmas showing the closure of subgraphs under intersection/union when needed for counting arguments.
    - Use Lean's rewriting tools (`by_cases`, `simp`, `finset.induction`) to verify every structural property, recording each as a lemma reusable in later stages.
 
+*Status (Stage 1):* We now have Stage 1 utilities in `Formalization/Stage1/FiniteSimpleGraphs.lean` that build graphs from explicit edge sets and prove basic edge-count lemmas (including the monotonicity of `edgeCount` and the `n.choose 2` edge count for complete graphs).  The next combinatorial steps will extend these tools to copy-counting and subgraph constructions.
+
 ### Stage 2 — Random Graph Model and Expectations
 
 Goal: formalize the probabilistic objects \(G(n,p)\) and compute expectations used in the thresholds.
