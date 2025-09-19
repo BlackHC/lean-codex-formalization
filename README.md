@@ -46,7 +46,7 @@ Key tasks and Lean checks:
 
 2. **Copy counting (`M_{H', H}`).**
    - [x] Define `countCopies (H' H : SimpleGraph (Fin n)) : ℕ` as the number of embeddings of `H'` into `H` (using `SimpleGraph.embedding`), quotienting by automorphisms if needed.
-   - [ ] Prove double-counting identities, e.g., the equality `π_H(J₀ ⊆ 𝐇) = M_{J,H} / M_J` via Lean proofs using `Fintype.card` and symmetry.
+   - [x] Prove double-counting identities, e.g., the equality `π_H(J₀ ⊆ 𝐇) = M_{J,H} / M_J` via Lean proofs using `Fintype.card` and symmetry.
    - [x] Validate the combinatorial identities with small examples (`Fin 3`, `Fin 4`) inside Lean using `dec_trivial` or `simp [countCopies]` to ensure the formulas have the correct normalization factors.
 
 3. **Monotonicity and edge-induced subgraphs.**
@@ -54,7 +54,7 @@ Key tasks and Lean checks:
    - [x] Provide automation lemmas showing the closure of subgraphs under intersection/union when needed for counting arguments.
    - [x] Use Lean's rewriting tools (`by_cases`, `simp`, `finset.induction`) to verify every structural property, recording each as a lemma reusable in later stages.
 
-*Status (Stage 1):* Stage 1 utilities in `Formalization/Stage1/FiniteSimpleGraphs.lean` now build graphs from explicit edge sets and prove the foundational edge-count lemmas (including monotonicity of `edgeCount` and the `n.choose 2` formula for complete graphs).  Edge-induced subgraphs, together with union/intersection closure lemmas and finite edge-count computations, are available to support the upcoming copy-counting and subgraph arguments.  The copy-counting API confirms that isomorphic pattern or host graphs yield identical enumerations of labelled embeddings.  **Remaining TODO:** formalize the double-counting identity `π_H(J₀ ⊆ 𝐇) = M_{J,H} / M_J` and its supporting normalizations before progressing to Stage 2.
+*Status (Stage 1):* Stage 1 utilities in `Formalization/Stage1/FiniteSimpleGraphs.lean` now build graphs from explicit edge sets and prove the foundational edge-count lemmas (including monotonicity of `edgeCount` and the `n.choose 2` formula for complete graphs).  Edge-induced subgraphs, together with union/intersection closure lemmas and finite edge-count computations, are available to support the upcoming copy-counting and subgraph arguments.  The copy-counting API confirms that isomorphic pattern or host graphs yield identical enumerations of labelled embeddings.  A new bijection between embeddings establishes the double-counting identity `π_H(J₀ ⊆ 𝐇) = M_{J,H} / M_J`, completing the Stage 1 checklist and setting the stage for the probabilistic development in Stage 2.
 
 ### Stage 2 — Random Graph Model and Expectations
 

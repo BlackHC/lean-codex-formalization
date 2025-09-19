@@ -291,6 +291,184 @@ example :
 
 end CopyCounting
 
+section DoubleCounting
+
+variable {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+
+open Classical
+
+/--
+Stage 1 bijection: embeddings of `J` into `H` correspond exactly to the
+embeddings of `J` into `G` whose image lies inside the range of a fixed
+embedding `f : H ↪g G`.  This realizes the counting argument behind the
+double-counting identity `(\#\text{copies of `J` inside `H`}) = M_{J,H}` used
+in \eqref{double_count} of the paper.
+-/
+noncomputable def embeddingsIntoRangeEquiv (J : SimpleGraph α)
+    (H : SimpleGraph β) (G : SimpleGraph γ) (f : H ↪g G) :
+    (J ↪g H)
+      ≃ {ψ : J ↪g G // Set.range ψ.toEmbedding ⊆ Set.range f.toEmbedding} := by
+  classical
+  let toFun : (J ↪g H)
+      → {ψ : J ↪g G // Set.range ψ.toEmbedding ⊆ Set.range f.toEmbedding} :=
+    fun φ =>
+      ⟨f.comp φ, by
+        intro x hx
+        rcases hx with ⟨v, rfl⟩
+        exact ⟨φ v, rfl⟩⟩
+  let invFun :
+      {ψ : J ↪g G // Set.range ψ.toEmbedding ⊆ Set.range f.toEmbedding}
+        → (J ↪g H) :=
+    fun ψ =>
+      let hmem : ∀ v, ∃ w, f.toEmbedding w = ψ.1.toEmbedding v := by
+        intro v
+        have hv : ψ.1.toEmbedding v ∈ Set.range ψ.1.toEmbedding := ⟨v, rfl⟩
+        exact ψ.2 hv
+      let preimage : α → β := fun v => Classical.choose (hmem v)
+      have hpreimage : ∀ v, f.toEmbedding (preimage v) = ψ.1.toEmbedding v :=
+        fun v => Classical.choose_spec (hmem v)
+      { toEmbedding :=
+          { toFun := preimage
+            inj' := by
+              intro u v huv
+              have : f.toEmbedding (preimage u) = f.toEmbedding (preimage v) :=
+                congrArg f.toEmbedding huv
+              have : ψ.1.toEmbedding u = ψ.1.toEmbedding v := by
+                simpa [preimage, hpreimage] using this
+              exact ψ.1.injective this }
+        map_rel_iff' := by
+          intro u v
+          have hf :=
+            (f.map_adj_iff (v := preimage u) (w := preimage v)).symm
+          have hψ := ψ.1.map_adj_iff (v := u) (w := v)
+          have hf' :
+              H.Adj (preimage u) (preimage v)
+                ↔ G.Adj (f (preimage u)) (f (preimage v)) := by
+            simpa [preimage] using hf
+          have hpre_u : f (preimage u) = ψ.1 u := by
+            simpa [preimage] using hpreimage u
+          have hpre_v : f (preimage v) = ψ.1 v := by
+            simpa [preimage] using hpreimage v
+          have hψ' :
+              G.Adj (f (preimage u)) (f (preimage v)) ↔ J.Adj u v := by
+            simpa [hpre_u, hpre_v] using hψ
+          exact hf'.trans hψ' }
+  refine
+    { toFun := toFun
+      invFun := invFun
+      left_inv := ?_
+      right_inv := ?_ }
+  · intro φ
+    ext v
+    -- evaluate the chosen preimage in `invFun (toFun φ)`
+    have hmem : ∀ u, ∃ w, f.toEmbedding w = (toFun φ).1.toEmbedding u := by
+      intro u; exact ⟨φ u, rfl⟩
+    have hpreimage :
+        ∀ u, f.toEmbedding (Classical.choose (hmem u))
+            = (toFun φ).1.toEmbedding u :=
+      fun u => Classical.choose_spec (hmem u)
+    have hpreimage_eq :
+        ∀ u, Classical.choose (hmem u) = φ u := by
+      intro u
+      apply f.injective
+      simpa [toFun, SimpleGraph.Embedding.comp] using hpreimage u
+    have hEval :
+        (invFun (toFun φ)) v = Classical.choose (hmem v) := by
+      simp [invFun, toFun]
+    simpa [hEval] using hpreimage_eq v
+  · intro ψ
+    ext v
+    have hmem : ∀ u, ∃ w, f.toEmbedding w = ψ.1.toEmbedding u := by
+      intro u
+      have hu : ψ.1.toEmbedding u ∈ Set.range ψ.1.toEmbedding := ⟨u, rfl⟩
+      exact ψ.2 hu
+    have hpreimage :
+        ∀ u, f.toEmbedding (Classical.choose (hmem u)) = ψ.1.toEmbedding u :=
+      fun u => Classical.choose_spec (hmem u)
+    have hEval :
+        (invFun ψ) v = Classical.choose (hmem v) := by
+      simp [invFun]
+    have := hpreimage v
+    change (f.comp (invFun ψ)) v = ψ.1 v
+    simp [hEval] at this
+    simpa [hEval] using this
+
+@[simp]
+lemma countCopies_subtype (J : SimpleGraph α) (H : SimpleGraph β)
+    (G : SimpleGraph γ) (f : H ↪g G) :
+    Fintype.card
+        {ψ : J ↪g G // Set.range ψ.toEmbedding ⊆ Set.range f.toEmbedding}
+      = countCopies J H := by
+  classical
+  simpa [countCopies] using
+    (Fintype.card_congr (embeddingsIntoRangeEquiv (J := J) (H := H) (G := G) f)).symm
+
+lemma countCopies_subtype_completeGraph (J : SimpleGraph α) (H : SimpleGraph β)
+    (n : ℕ) (f : H ↪g SimpleGraph.completeGraph (Fin n)) :
+    Fintype.card
+        {ψ : J ↪g SimpleGraph.completeGraph (Fin n) |
+            Set.range ψ.toEmbedding ⊆ Set.range f.toEmbedding}
+      = countCopies J H := by
+  simpa using countCopies_subtype (J := J) (H := H)
+      (G := SimpleGraph.completeGraph (Fin n)) f
+
+lemma uniformProbability_double_count (J : SimpleGraph α) (H : SimpleGraph β)
+    (n : ℕ) (f : H ↪g SimpleGraph.completeGraph (Fin n)) :
+    ((Fintype.card
+        {ψ : J ↪g SimpleGraph.completeGraph (Fin n) |
+            Set.range ψ.toEmbedding ⊆ Set.range f.toEmbedding} : ℚ)
+          /
+        countCopies J (SimpleGraph.completeGraph (Fin n)))
+      =
+        (countCopies J H : ℚ)
+          / countCopies J (SimpleGraph.completeGraph (Fin n)) := by
+  classical
+  have h := countCopies_subtype_completeGraph (J := J) (H := H) (n := n) f
+  have hcast :
+      (Fintype.card
+          {ψ : J ↪g SimpleGraph.completeGraph (Fin n) |
+              Set.range ψ.toEmbedding ⊆ Set.range f.toEmbedding} : ℚ)
+        = countCopies J H := by exact_mod_cast h
+  have hcast' :
+      ((Fintype.card
+          {ψ : J ↪g SimpleGraph.completeGraph (Fin n) |
+              Set.range ψ.toEmbedding ⊆ Set.range f.toEmbedding} : ℕ) : ℚ)
+        = countCopies J H := by exact_mod_cast h
+  exact congrArg (fun x : ℚ => x / countCopies J (SimpleGraph.completeGraph (Fin n))) hcast'
+
+/-- Sanity check: for `J = K₂` and `H = K₃`, exactly three of the six labelled copies of
+`K₂` inside `K₃` lie in a fixed labelled copy of `K₃` inside `K₄`. -/
+example :
+    ((Fintype.card
+          {ψ : SimpleGraph.completeGraph (Fin 2)
+              ↪g SimpleGraph.completeGraph (Fin 4) |
+                Set.range ψ.toEmbedding ⊆
+                  Set.range
+                    (SimpleGraph.Embedding.completeGraph
+                      (Fin.castLEEmb (show 3 ≤ 4 by decide))).toEmbedding}
+          : ℚ)
+        /
+        countCopies (SimpleGraph.completeGraph (Fin 2))
+          (SimpleGraph.completeGraph (Fin 4)))
+      =
+        (countCopies (SimpleGraph.completeGraph (Fin 2))
+            (SimpleGraph.completeGraph (Fin 3)) : ℚ)
+          /
+        countCopies (SimpleGraph.completeGraph (Fin 2))
+          (SimpleGraph.completeGraph (Fin 4)) := by
+  classical
+  let f : SimpleGraph.completeGraph (Fin 3)
+      ↪g SimpleGraph.completeGraph (Fin 4) :=
+    SimpleGraph.Embedding.completeGraph (Fin.castLEEmb (show 3 ≤ 4 by decide))
+  have hf :=
+    uniformProbability_double_count
+      (J := SimpleGraph.completeGraph (Fin 2))
+      (H := SimpleGraph.completeGraph (Fin 3))
+      (n := 4) f
+  simpa [f] using hf
+
+end DoubleCounting
+
 section EdgeInduced
 
 variable {V : Type*}
