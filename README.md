@@ -152,8 +152,7 @@ Lean tasks:
 
 ## Next Steps
 
-1. [ ] Coordinate with the maintainer to complete the Stage 0 `lake update` outside the container once dependency changes are recorded in `lakefile.lean`.
-2. [ ] Close the remaining Stage 1 checkbox by proving the double-counting identity for `π_H(J₀ ⊆ 𝐇)`.
-3. [ ] After Stage 1 is complete, begin Stage 2 by modeling `G(n,p)` and introducing the associated expectation lemmas.
+1. [ ] Close the remaining Stage 1 checkbox by proving the double-counting identity for `π_H(J₀ ⊆ 𝐇)`.
+2. [ ] After Stage 1 is complete, begin Stage 2 by modeling `G(n,p)` and introducing the associated expectation lemmas.
 
 Progress and deviations from this plan should be recorded either in this README or in additional markdown notes within the repository.
