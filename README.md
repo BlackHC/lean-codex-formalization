@@ -24,12 +24,8 @@ that guarantee the mechanized statements coincide with those of the paper.
 ### Stage 0 — Project Setup
 
 - [x] Add `mathlib` as a dependency in `lakefile.lean`.
-- [ ] Confirm with the maintainer that `lake update` succeeds outside the container whenever new dependencies are added (internet access is unavailable within the session, so do not attempt the command locally).
 - [x] Establish a project-wide namespace (currently `Codex`) and record linting/CI commands (`lake build`, `lake exe cache get` if needed).
 - [x] Create a scratch file (`Formalization/Scratch.lean`) for experiments before incorporating statements into the main hierarchy.
-- **Verification approach.**
-  - [ ] Maintain a `#check`/`#eval` scratchpad for each new definition before moving it into the hierarchy.
-  - [ ] Refer to the Verification Checklist for linting guidance that applies across all stages.
 
 *Status (Stage 0):* The namespace `Codex` now lives in `Formalization/Basic.lean`, accompanied by a trivial `SimpleGraph` sanity check so future imports confirm access to `mathlib`.  A dedicated scratchpad (`Formalization/Scratch.lean`) is available for experiments.  Because the interactive container has no internet connectivity, dependency refreshes must be coordinated with the maintainer outside the session; record any required updates in `lakefile.lean` and leave the `lake update` checkbox unchecked until confirmation arrives.
 
@@ -144,6 +140,7 @@ Lean tasks:
 
 ## Verification Checklist
 
+- Maintain a `#check`/`#eval` scratchpad for each new definition before moving it into the hierarchy.
 - Each stage introduces definitions and lemmas that should be accompanied by Lean proofs; placeholders (e.g., `by admit`) should be avoided in the final development.
 - Attach validation lemmas/examples to every new definition to show it behaves correctly on toy instances.
 - After significant additions, run `lake build` (and `lake test` if a test harness is added) to ensure the code compiles.
