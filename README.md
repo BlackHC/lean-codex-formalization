@@ -50,7 +50,7 @@ Key tasks and Lean checks:
    - [x] Provide automation lemmas showing the closure of subgraphs under intersection/union when needed for counting arguments.
    - [x] Use Lean's rewriting tools (`by_cases`, `simp`, `finset.induction`) to verify every structural property, recording each as a lemma reusable in later stages.
 
-*Status (Stage 1):* Stage 1 utilities in `Formalization/Stage1/FiniteSimpleGraphs.lean` now build graphs from explicit edge sets and prove the foundational edge-count lemmas (including monotonicity of `edgeCount` and the `n.choose 2` formula for complete graphs).  Edge-induced subgraphs, together with union/intersection closure lemmas and finite edge-count computations, are available to support the upcoming copy-counting and subgraph arguments.  The copy-counting API confirms that isomorphic pattern or host graphs yield identical enumerations of labelled embeddings.  A new bijection between embeddings establishes the double-counting identity `π_H(J₀ ⊆ 𝐇) = M_{J,H} / M_J`, completing the Stage 1 checklist and setting the stage for the probabilistic development in Stage 2.
+*Status (Stage 1):* Stage 1 utilities in `Formalization/Stage1/FiniteSimpleGraphs.lean` now build graphs from explicit edge sets and prove the foundational edge-count lemmas (including monotonicity of `edgeCount` and the `n.choose 2` formula for complete graphs).  Edge-induced subgraphs, together with union/intersection closure lemmas and finite edge-count computations, are available to support the upcoming copy-counting and subgraph arguments.  The copy-counting API confirms that isomorphic pattern or host graphs yield identical enumerations of labelled embeddings.  New permutation-based transport lemmas supply the double-counting identity `π_H(J₀ ⊆ 𝐇) = M_{J,H} / M_J`, formalized as `uniform_probability_contains_fixed_copy`, completing the Stage 1 checklist and setting the stage for the probabilistic development in Stage 2.
 
 ### Stage 2 — Random Graph Model and Expectations
 
@@ -149,7 +149,7 @@ Lean tasks:
 
 ## Next Steps
 
-1. [ ] Close the remaining Stage 1 checkbox by proving the double-counting identity for `π_H(J₀ ⊆ 𝐇)`.
+1. [x] Close the remaining Stage 1 checkbox by proving the double-counting identity for `π_H(J₀ ⊆ 𝐇)`.
 2. [ ] After Stage 1 is complete, begin Stage 2 by modeling `G(n,p)` and introducing the associated expectation lemmas.
 
 Progress and deviations from this plan should be recorded either in this README or in additional markdown notes within the repository.

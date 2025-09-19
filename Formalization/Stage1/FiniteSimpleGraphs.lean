@@ -412,6 +412,27 @@ lemma countCopies_subtype_completeGraph (J : SimpleGraph α) (H : SimpleGraph β
   simpa using countCopies_subtype (J := J) (H := H)
       (G := SimpleGraph.completeGraph (Fin n)) f
 
+noncomputable def embeddingRangeEquiv {J : SimpleGraph α} {G : SimpleGraph β}
+    (φ : J ↪g G) : α ≃ Set.range φ.toEmbedding :=
+  { toFun := fun v => ⟨φ v, ⟨v, rfl⟩⟩
+    invFun := fun x => Classical.choose x.property
+    left_inv := by
+      intro v
+      classical
+      have hx : ∃ w, φ.toEmbedding w = φ.toEmbedding v := ⟨v, rfl⟩
+      have hspec := Classical.choose_spec hx
+      simpa [embeddingRangeEquiv, hx] using φ.injective hspec
+    right_inv := by
+      intro x
+      classical
+      ext
+      simpa [embeddingRangeEquiv] using Classical.choose_spec x.property }
+
+@[simp]
+lemma embeddingRangeEquiv_apply_coe {J : SimpleGraph α} {G : SimpleGraph β}
+    (φ : J ↪g G) (v : α) :
+    ((embeddingRangeEquiv φ) v : β) = φ v := rfl
+
 lemma uniformProbability_double_count (J : SimpleGraph α) (H : SimpleGraph β)
     (n : ℕ) (f : H ↪g SimpleGraph.completeGraph (Fin n)) :
     ((Fintype.card
@@ -466,6 +487,297 @@ example :
       (H := SimpleGraph.completeGraph (Fin 3))
       (n := 4) f
   simpa [f] using hf
+
+noncomputable def embeddingRangePerm {J : SimpleGraph α}
+    (ψ ψ' : J ↪g SimpleGraph.completeGraph (Fin n)) :
+    Equiv.Perm (Fin n) :=
+  Equiv.extendSubtype
+    ((embeddingRangeEquiv (J := J) (G := SimpleGraph.completeGraph (Fin n)) ψ).symm.trans
+      (embeddingRangeEquiv (J := J) (G := SimpleGraph.completeGraph (Fin n)) ψ'))
+
+@[simp]
+lemma embeddingRangePerm_apply {J : SimpleGraph α}
+    (ψ ψ' : J ↪g SimpleGraph.completeGraph (Fin n)) (v : α) :
+    embeddingRangePerm (n := n) ψ ψ' (ψ v) = ψ' v := by
+  classical
+  have hx : ψ v ∈ Set.range ψ.toEmbedding := ⟨v, rfl⟩
+  have :
+      embeddingRangePerm (n := n) ψ ψ' (ψ v)
+        = ((embeddingRangeEquiv (J := J)
+              (G := SimpleGraph.completeGraph (Fin n)) ψ').trans
+            ((embeddingRangeEquiv (J := J)
+                (G := SimpleGraph.completeGraph (Fin n)) ψ).symm))
+            ⟨ψ v, hx⟩ := by
+    simpa [embeddingRangePerm, hx, Equiv.trans_apply]
+      using Equiv.extendSubtype_apply_of_mem _ (x := ψ v) hx
+  simpa [Equiv.trans_apply]
+    using congrArg Subtype.val this
+
+@[simp]
+lemma embeddingRangePerm_symm_apply {J : SimpleGraph α}
+    (ψ ψ' : J ↪g SimpleGraph.completeGraph (Fin n)) (v : α) :
+    (embeddingRangePerm (n := n) ψ ψ')⁻¹ (ψ' v) = ψ v := by
+  classical
+  have hx : ψ' v ∈ Set.range ψ'.toEmbedding := ⟨v, rfl⟩
+  have :
+      (embeddingRangePerm (n := n) ψ ψ')⁻¹ (ψ' v)
+        = ((embeddingRangeEquiv (J := J)
+              (G := SimpleGraph.completeGraph (Fin n)) ψ).trans
+            ((embeddingRangeEquiv (J := J)
+                (G := SimpleGraph.completeGraph (Fin n)) ψ').symm))
+            ⟨ψ' v, hx⟩ := by
+    simpa [embeddingRangePerm, hx, Equiv.trans_apply]
+      using Equiv.extendSubtype_apply_of_mem _ (x := ψ' v) hx
+  simpa [Equiv.trans_apply]
+    using congrArg Subtype.val this
+
+lemma embeddingRangePerm_comp {J : SimpleGraph α}
+    (ψ ψ' : J ↪g SimpleGraph.completeGraph (Fin n)) :
+    (SimpleGraph.Embedding.completeGraph (embeddingRangePerm (n := n) ψ ψ')).comp ψ = ψ' := by
+  classical
+  ext v
+  simp [SimpleGraph.Embedding.coe_comp, embeddingRangePerm_apply]
+
+lemma embeddingRangePerm_symm_comp {J : SimpleGraph α}
+    (ψ ψ' : J ↪g SimpleGraph.completeGraph (Fin n)) :
+    (SimpleGraph.Embedding.completeGraph
+        ((embeddingRangePerm (n := n) ψ ψ')⁻¹)).comp ψ' = ψ := by
+  classical
+  ext v
+  simp [SimpleGraph.Embedding.coe_comp, embeddingRangePerm_symm_apply]
+
+noncomputable def embeddingsContainingEquiv (J : SimpleGraph α)
+    (H : SimpleGraph β) (G : SimpleGraph γ) :
+    (Σ φ : H ↪g G, J ↪g H)
+      ≃ Σ ψ : J ↪g G,
+          {φ : H ↪g G // Set.range ψ.toEmbedding ⊆ Set.range φ.toEmbedding} :=
+  ((Equiv.sigmaCongrRight fun φ =>
+        embeddingsIntoRangeEquiv (J := J) (H := H) (G := G) φ).trans
+      { toFun := fun x =>
+          match x with
+          | ⟨φ, ⟨ψ, h⟩⟩ => ⟨ψ, ⟨φ, h⟩⟩
+        invFun := fun x =>
+          match x with
+          | ⟨ψ, ⟨φ, h⟩⟩ => ⟨φ, ⟨ψ, h⟩⟩
+        left_inv := by
+          intro x
+          rcases x with ⟨φ, ⟨ψ, h⟩⟩
+          rfl
+        right_inv := by
+          intro x
+          rcases x with ⟨ψ, ⟨φ, h⟩⟩
+          rfl }).trans
+    (Equiv.sigmaComm _)
+
+lemma total_double_count_card (J : SimpleGraph α) (H : SimpleGraph β)
+    (G : SimpleGraph γ) :
+    countCopies H G * countCopies J H
+      = Fintype.card
+          (Σ ψ : J ↪g G,
+            {φ : H ↪g G // Set.range ψ.toEmbedding ⊆ Set.range φ.toEmbedding}) := by
+  classical
+  have hσ :=
+    Fintype.card_congr
+      (embeddingsContainingEquiv (J := J) (H := H) (G := G))
+  have hleft :=
+    Fintype.card_congr
+      (Equiv.sigmaEquivProd (H ↪g G)
+        (fun _ => J ↪g H))
+  have hleft' :
+      Fintype.card (Σ φ : H ↪g G, J ↪g H)
+        = countCopies H G * countCopies J H := by
+    simpa [countCopies, Fintype.card_prod] using hleft.symm
+  simpa using hleft'.trans hσ
+
+lemma card_embeddings_containing_eq
+    (J : SimpleGraph α) (H : SimpleGraph β)
+    (n : ℕ) (ψ ψ' : J ↪g SimpleGraph.completeGraph (Fin n)) :
+    Fintype.card
+        {φ : H ↪g SimpleGraph.completeGraph (Fin n) //
+            Set.range ψ.toEmbedding ⊆ Set.range φ.toEmbedding}
+      = Fintype.card
+        {φ : H ↪g SimpleGraph.completeGraph (Fin n) //
+            Set.range ψ'.toEmbedding ⊆ Set.range φ.toEmbedding} := by
+  classical
+  let σ := embeddingRangePerm (n := n) ψ ψ'
+  let σEmb := SimpleGraph.Embedding.completeGraph σ
+  let σEmbInv := SimpleGraph.Embedding.completeGraph σ.symm
+  refine Fintype.card_congr ?_
+  refine
+    { toFun := fun φ =>
+        ⟨σEmb.comp φ, by
+          have : Set.range (σEmb.comp ψ).toEmbedding
+              ⊆ Set.range (σEmb.comp φ).toEmbedding := by
+            change σ '' Set.range ψ.toEmbedding
+                ⊆ σ '' Set.range φ.toEmbedding
+            simpa [SimpleGraph.Embedding.coe_comp, Set.range_comp] using
+              Set.image_subset σ φ.property
+          simpa [embeddingRangePerm_comp, SimpleGraph.Embedding.coe_comp]
+            using this⟩
+      invFun := fun φ =>
+        ⟨σEmbInv.comp φ,
+          by
+            have : Set.range (σEmbInv.comp ψ').toEmbedding
+                ⊆ Set.range (σEmbInv.comp φ).toEmbedding := by
+              change σ⁻¹ '' Set.range ψ'.toEmbedding
+                  ⊆ σ⁻¹ '' Set.range φ.toEmbedding
+              simpa [SimpleGraph.Embedding.coe_comp, Set.range_comp] using
+                Set.image_subset σ.symm φ.property
+            simpa [embeddingRangePerm_symm_comp, SimpleGraph.Embedding.coe_comp]
+              using this⟩
+      left_inv := by
+        intro φ
+        ext v
+        simp [σEmb, σEmbInv, SimpleGraph.Embedding.coe_comp,
+          embeddingRangePerm_symm_apply]
+      right_inv := by
+        intro φ
+        ext v
+        simp [σEmb, σEmbInv, SimpleGraph.Embedding.coe_comp,
+          embeddingRangePerm_apply] }
+
+lemma countCopies_contains_fixed_copy
+    (J : SimpleGraph α) (H : SimpleGraph β) (n : ℕ)
+    (ψ₀ : J ↪g SimpleGraph.completeGraph (Fin n)) :
+    Fintype.card
+        {φ : H ↪g SimpleGraph.completeGraph (Fin n) //
+            Set.range ψ₀.toEmbedding ⊆ Set.range φ.toEmbedding}
+          * countCopies J (SimpleGraph.completeGraph (Fin n))
+      = countCopies H (SimpleGraph.completeGraph (Fin n))
+          * countCopies J H := by
+  classical
+  let G := SimpleGraph.completeGraph (Fin n)
+  have htotal :=
+    total_double_count_card (J := J) (H := H) (G := G)
+  have hsum :
+      Fintype.card
+          (Σ ψ : J ↪g G,
+            {φ : H ↪g G // Set.range ψ.toEmbedding ⊆ Set.range φ.toEmbedding})
+        = ∑ ψ : J ↪g G,
+            Fintype.card
+              {φ : H ↪g G // Set.range ψ.toEmbedding ⊆ Set.range φ.toEmbedding} :=
+    by simp [Fintype.card_sigma]
+  have hconst :
+      ∀ ψ : J ↪g G,
+        Fintype.card
+            {φ : H ↪g G // Set.range ψ.toEmbedding ⊆ Set.range φ.toEmbedding}
+          = Fintype.card
+            {φ : H ↪g G // Set.range ψ₀.toEmbedding ⊆ Set.range φ.toEmbedding} :=
+    fun ψ => card_embeddings_containing_eq (J := J) (H := H) (n := n) ψ ψ₀
+  have hsumConst :
+      ∑ ψ : J ↪g G,
+          Fintype.card
+            {φ : H ↪g G // Set.range ψ.toEmbedding ⊆ Set.range φ.toEmbedding}
+        = countCopies J G *
+            Fintype.card
+              {φ : H ↪g G // Set.range ψ₀.toEmbedding ⊆ Set.range φ.toEmbedding} := by
+    classical
+    have hconstFinset :
+        ∀ ψ ∈ (Finset.univ : Finset (J ↪g G)),
+          Fintype.card
+              {φ : H ↪g G // Set.range ψ.toEmbedding ⊆ Set.range φ.toEmbedding}
+            = Fintype.card
+              {φ : H ↪g G // Set.range ψ₀.toEmbedding ⊆ Set.range φ.toEmbedding} :=
+      by intro ψ _; simpa using hconst ψ
+    have :=
+      Finset.sum_const_nat (s := (Finset.univ : Finset (J ↪g G)))
+        (f := fun ψ : J ↪g G =>
+          Fintype.card
+            {φ : H ↪g G // Set.range ψ.toEmbedding ⊆ Set.range φ.toEmbedding})
+        (m :=
+          Fintype.card
+            {φ : H ↪g G // Set.range ψ₀.toEmbedding ⊆ Set.range φ.toEmbedding})
+        hconstFinset
+    simpa [countCopies, hconst, Finset.card_univ] using this
+  have hcard :
+      countCopies H G * countCopies J H
+        = countCopies J G *
+            Fintype.card
+              {φ : H ↪g G // Set.range ψ₀.toEmbedding ⊆ Set.range φ.toEmbedding} := by
+    simpa [hsumConst] using htotal.trans hsum
+  simpa [countCopies, Nat.mul_comm, Nat.mul_left_comm, Nat.mul_assoc]
+    using hcard.symm
+
+lemma probability_contains_fixed_copy
+    (J : SimpleGraph α) (H : SimpleGraph β) (n : ℕ)
+    (ψ₀ : J ↪g SimpleGraph.completeGraph (Fin n))
+    (hHK : countCopies H (SimpleGraph.completeGraph (Fin n)) ≠ 0)
+    (hJK : countCopies J (SimpleGraph.completeGraph (Fin n)) ≠ 0) :
+    ((Fintype.card
+          {φ : H ↪g SimpleGraph.completeGraph (Fin n) |
+              Set.range ψ₀.toEmbedding ⊆ Set.range φ.toEmbedding} : ℚ)
+        / countCopies H (SimpleGraph.completeGraph (Fin n)))
+      = (countCopies J H : ℚ)
+          / countCopies J (SimpleGraph.completeGraph (Fin n)) := by
+  classical
+  have hNat :=
+    countCopies_contains_fixed_copy (J := J) (H := H) (n := n) ψ₀
+  have hRat :
+      ((Fintype.card
+            {φ : H ↪g SimpleGraph.completeGraph (Fin n) |
+                Set.range ψ₀.toEmbedding ⊆ Set.range φ.toEmbedding} : ℚ)
+          * countCopies J (SimpleGraph.completeGraph (Fin n)) : ℚ)
+        = (countCopies H (SimpleGraph.completeGraph (Fin n)) : ℚ)
+            * countCopies J H := by
+    exact_mod_cast hNat
+  have hHK' : (countCopies H (SimpleGraph.completeGraph (Fin n)) : ℚ) ≠ 0 := by
+    exact_mod_cast hHK
+  have hJK' : (countCopies J (SimpleGraph.completeGraph (Fin n)) : ℚ) ≠ 0 := by
+    exact_mod_cast hJK
+  have :=
+    (div_eq_div_iff hHK' hJK').2 <|
+      by
+        simpa [mul_comm, mul_left_comm, mul_assoc]
+          using hRat
+  simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+    using this.symm
+
+lemma uniform_probability_contains_fixed_copy
+    (J : SimpleGraph α) (H : SimpleGraph β) (n : ℕ)
+    (ψ₀ : J ↪g SimpleGraph.completeGraph (Fin n))
+    (hHK : countCopies H (SimpleGraph.completeGraph (Fin n)) ≠ 0)
+    (hJK : countCopies J (SimpleGraph.completeGraph (Fin n)) ≠ 0) :
+    ((Fintype.card
+          {φ : H ↪g SimpleGraph.completeGraph (Fin n) |
+              Set.range ψ₀.toEmbedding ⊆ Set.range φ.toEmbedding} : ℚ)
+        / countCopies H (SimpleGraph.completeGraph (Fin n)))
+      = (countCopies J H : ℚ)
+          / countCopies J (SimpleGraph.completeGraph (Fin n)) :=
+  probability_contains_fixed_copy (J := J) (H := H) (n := n) ψ₀ hHK hJK
+
+/-- Sanity check: a uniform labelled copy of `K₃` inside `K₄` contains a fixed labelled
+copy of `K₂` with probability `3 / 6`. -/
+example :
+    ((Fintype.card
+          {φ : SimpleGraph.completeGraph (Fin 3)
+              ↪g SimpleGraph.completeGraph (Fin 4) |
+                Set.range
+                    (SimpleGraph.Embedding.completeGraph
+                      (Fin.castLEEmb (show 2 ≤ 4 by decide))).toEmbedding
+                  ⊆ Set.range φ.toEmbedding} : ℚ)
+        / countCopies (SimpleGraph.completeGraph (Fin 3))
+            (SimpleGraph.completeGraph (Fin 4)))
+      = (countCopies (SimpleGraph.completeGraph (Fin 2))
+            (SimpleGraph.completeGraph (Fin 3)) : ℚ)
+          /
+        countCopies (SimpleGraph.completeGraph (Fin 2))
+          (SimpleGraph.completeGraph (Fin 4)) := by
+  classical
+  have hHK :
+      countCopies (SimpleGraph.completeGraph (Fin 3))
+          (SimpleGraph.completeGraph (Fin 4)) ≠ 0 := by decide
+  have hJK :
+      countCopies (SimpleGraph.completeGraph (Fin 2))
+          (SimpleGraph.completeGraph (Fin 4)) ≠ 0 := by decide
+  simpa using
+    uniform_probability_contains_fixed_copy
+      (J := SimpleGraph.completeGraph (Fin 2))
+      (H := SimpleGraph.completeGraph (Fin 3))
+      (n := 4)
+      (ψ₀ :=
+        SimpleGraph.Embedding.completeGraph
+          (Fin.castLEEmb (show 2 ≤ 4 by decide)))
+      hHK hJK
 
 end DoubleCounting
 
