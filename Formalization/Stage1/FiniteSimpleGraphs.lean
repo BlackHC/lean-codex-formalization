@@ -296,6 +296,8 @@ section DoubleCounting
 variable {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
 
 open Classical
+open scoped BigOperators
+open Equiv
 
 /--
 Stage 1 bijection: embeddings of `J` into `H` correspond exactly to the
@@ -466,6 +468,14 @@ example :
       (H := SimpleGraph.completeGraph (Fin 3))
       (n := 4) f
   simpa [f] using hf
+
+
+-- TODO (Stage 1): Revisit the constant-fibre argument for embeddings into a fixed
+-- copy of `J` inside `K_n`.  The previous attempt relied on extending embeddings
+-- to permutations of `Fin n`, but the construction used non-existent
+-- `Function.Embedding` helpers.  Once the permutation extension is rebuilt,
+-- restore the lemma computing the probability that a random labelled copy of `H`
+-- contains a fixed copy of `J`.
 
 end DoubleCounting
 
