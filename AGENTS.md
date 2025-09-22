@@ -13,6 +13,7 @@ These instructions apply to the entire repository. Update this file if new subdi
 ## Workflow Requirements
 
 - **Environment limitations:** After the container launches there is no internet access. Commands such as `lake update` and `lake exe cache get` will fail; do not attempt them inside the session. Record dependency changes in `lakefile.lean` and escalate the request to the maintainer so they can refresh caches externally.
+- **Dependency lockfiles:** Never revert `lake-manifest.json`. The manifest was produced by a known-good `lake update`, and without network access the cached packages must stay in sync with that exact revision for `lake build` to succeed.
 - **Dependencies:** Before pushing significant Lean changes, verify that the dependency configuration in `lakefile.lean` imports `mathlib` and accurately lists any new packages you require.
   - Because network-dependent commands cannot be executed inside the container, treat `lakefile.lean` as the source of truth for dependencies, document the needed updates in your notes, and ask the maintainer to run the necessary cache refreshes outside the environment.
 - **Build checks:** Run `lake build` after modifying Lean files. Record the command in the PR/testing notes.
