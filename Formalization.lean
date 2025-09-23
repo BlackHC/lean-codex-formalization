@@ -2,3 +2,4 @@
 -- Import modules here that should be built as part of the library.
 import Formalization.Basic
 import Formalization.Stage1.FiniteSimpleGraphs
+import Formalization.Stage2.RandomGraph

@@ -64,9 +64,9 @@ Goal: formalize the probabilistic objects \(G(n,p)\) and compute expectations us
 Lean tasks:
 
 1. **Probability space for `G(n, p)`.**
-   - [ ] Model `G(n, p)` as the product measure on edge indicators. Use `SimpleGraph` and random edge subsets, employing `MeasureTheory` and `Probability` APIs in `mathlib`.
-   - [ ] Define `gnp (n : ℕ) (p : ℝ)` returning a random variable valued in `SimpleGraph (Fin n)`.
-   - [ ] Confirm measurability and integrability obligations explicitly with Lean proofs (`measurable_gnp`, `integrable_countCopies`) and tag the statements with documentation notes referencing the paper.
+   - [x] Model `G(n, p)` as the product measure on edge indicators. Use `SimpleGraph` and random edge subsets, employing `MeasureTheory` and `Probability` APIs in `mathlib`.
+   - [x] Define `gnp (n : ℕ) (p : ℝ)` returning a random variable valued in `SimpleGraph (Fin n)`.
+   - [ ] Confirm measurability and integrability obligations explicitly with Lean proofs (`measurable_gnp`, `integrable_countCopies`) and tag the statements with documentation notes referencing the paper. *(Measurability is now available via `Stage2.measurable_gnp`; integrability remains pending.)*
 
 2. **Random variables counting subgraphs.**
    - [ ] For each finite graph `H'`, define `countCopiesInRandomGraph` returning a random variable `Z_{H'}`. Use independence to show `ℙ[Z_{H'} ≥ t]` type statements.
@@ -76,6 +76,8 @@ Lean tasks:
 3. **Tail bounds via Markov.**
    - [ ] Formalize Markov's inequality using `mathlib`'s version and instantiate it for `Z_{H'}`. This verifies the inequalities `p_E ≤ p_Etilde ≤ p_crit`.
    - [ ] Capture the instantiated inequalities as Lean lemmas (`pE_le_pEtilde`, `pEtilde_le_pCrit`) and add `@[simp]` or `lemma` wrappers to make them directly reusable in Stage 3.
+
+*Status (Stage 2):* The module `Formalization/Stage2/RandomGraph.lean` introduces the Bernoulli product measure over edge indicators, the random variable `gnp`, and the measurability lemma `Stage2.measurable_gnp`. The remaining tasks focus on integrability statements and expectation computations for subgraph-counting random variables.
 
 ### Stage 3 — Threshold Definitions
 
