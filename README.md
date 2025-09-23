@@ -46,7 +46,7 @@ Key tasks and Lean checks:
 
 2. **Copy counting (`M_{H', H}`).**
    - [x] Define `countCopies (H' H : SimpleGraph (Fin n)) : ℕ` as the number of embeddings of `H'` into `H` (using `SimpleGraph.embedding`), quotienting by automorphisms if needed.
-   - [ ] Finish the double-counting probability identity `π_H(J₀ ⊆ 𝐇) = M_{J,H} / M_J` in Lean.  (Current progress: the range-containment bijection `embeddingsIntoRangeEquiv` compiles and the basic rational identity `uniformProbability_double_count` is available, but the more uniform reformulation still needs to be reconstructed after rolling back the broken attempt.)
+   - [x] Finish the double-counting probability identity `π_H(J₀ ⊆ 𝐇) = M_{J,H} / M_J` in Lean.  (Completed via the new lemma `uniformProbability_contains_fixed` which combines the constant-fibre argument with `embeddingPairsEquiv`.)
    - [x] Validate the combinatorial identities with small examples (`Fin 3`, `Fin 4`) inside Lean using `dec_trivial` or `simp [countCopies]` to ensure the formulas have the correct normalization factors.
 
 3. **Monotonicity and edge-induced subgraphs.**
@@ -54,7 +54,7 @@ Key tasks and Lean checks:
    - [x] Provide automation lemmas showing the closure of subgraphs under intersection/union when needed for counting arguments.
    - [x] Use Lean's rewriting tools (`by_cases`, `simp`, `finset.induction`) to verify every structural property, recording each as a lemma reusable in later stages.
 
-*Status (Stage 1):* Stage 1 utilities in `Formalization/Stage1/FiniteSimpleGraphs.lean` now build graphs from explicit edge sets and prove the foundational edge-count lemmas (including monotonicity of `edgeCount` and the `n.choose 2` formula for complete graphs).  Edge-induced subgraphs, together with union/intersection closure lemmas and finite edge-count computations, are available to support the upcoming copy-counting and subgraph arguments.  The copy-counting API confirms that isomorphic pattern or host graphs yield identical enumerations of labelled embeddings.  After reverting the unstable probability generalization, we retain the core bijection `embeddingsIntoRangeEquiv` and its ratio corollary `uniformProbability_double_count`; rebuilding the full uniform-probability statement is now tracked explicitly in the checklist above.
+*Status (Stage 1):* Stage 1 utilities in `Formalization/Stage1/FiniteSimpleGraphs.lean` now build graphs from explicit edge sets and prove the foundational edge-count lemmas (including monotonicity of `edgeCount` and the `n.choose 2` formula for complete graphs).  Edge-induced subgraphs, together with union/intersection closure lemmas and finite edge-count computations, are available to support the upcoming copy-counting and subgraph arguments.  The copy-counting API confirms that isomorphic pattern or host graphs yield identical enumerations of labelled embeddings, and the new permutation construction leads to the uniform probability lemma `uniformProbability_contains_fixed`, completing the Stage 1 double-counting identity.
 
 ### Stage 2 — Random Graph Model and Expectations
 
@@ -152,9 +152,9 @@ Lean tasks:
 
 ## Next Steps
 
-1. [ ] Rebuild the Stage 1 double-counting probability identity in manageable steps:
-   1. [ ] Re-establish the cardinality equality for embeddings containing a fixed copy using sigma-type bookkeeping.
-   2. [ ] Upgrade the `uniformProbability_double_count` lemma to the fully uniform statement once the cardinality step is stable.
+1. [x] Rebuild the Stage 1 double-counting probability identity in manageable steps:
+   1. [x] Re-establish the cardinality equality for embeddings containing a fixed copy using sigma-type bookkeeping.
+   2. [x] Upgrade the `uniformProbability_double_count` lemma to the fully uniform statement once the cardinality step is stable.
 2. [ ] After Stage 1 is complete, begin Stage 2 by modeling `G(n,p)` and introducing the associated expectation lemmas.
 
 Progress and deviations from this plan should be recorded either in this README or in additional markdown notes within the repository.
