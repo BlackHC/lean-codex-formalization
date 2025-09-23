@@ -66,7 +66,7 @@ Lean tasks:
 1. **Probability space for `G(n, p)`.**
    - [x] Model `G(n, p)` as the product measure on edge indicators. Use `SimpleGraph` and random edge subsets, employing `MeasureTheory` and `Probability` APIs in `mathlib`.
    - [x] Define `gnp (n : ℕ) (p : ℝ)` returning a random variable valued in `SimpleGraph (Fin n)`.
-   - [ ] Confirm measurability and integrability obligations explicitly with Lean proofs (`measurable_gnp`, `integrable_countCopies`) and tag the statements with documentation notes referencing the paper. *(Measurability is now available via `Stage2.measurable_gnp`; integrability remains pending.)*
+   - [x] Confirm measurability and integrability obligations explicitly with Lean proofs (`measurable_gnp`, `integrable_countCopies`) and tag the statements with documentation notes referencing the paper. *(These are provided by `Stage2.measurable_gnp` and `Stage2.integrable_countCopies`.)*
 
 2. **Random variables counting subgraphs.**
    - [ ] For each finite graph `H'`, define `countCopiesInRandomGraph` returning a random variable `Z_{H'}`. Use independence to show `ℙ[Z_{H'} ≥ t]` type statements.

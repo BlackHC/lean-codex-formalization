@@ -296,6 +296,41 @@ example :
   classical
   simp [countCopies_completeGraph_fin]
 
+/-- Stage 1 bound: every labelled embedding of `H` into a graph on `Fin n` is
+controlled by its underlying vertex injection, so the copy count never exceeds
+the descending factorial counting injections. -/
+lemma countCopies_le_descFactorial {k n : ℕ}
+    (H : SimpleGraph (Fin k)) (G : SimpleGraph (Fin n)) :
+    countCopies H G ≤ Nat.descFactorial n k := by
+  classical
+  have hCard :
+      countCopies H G ≤ Fintype.card (Fin k ↪ Fin n) := by
+    have hinj :
+        Function.Injective
+          (fun φ : H ↪g G => φ.toEmbedding) := by
+      intro φ ψ hφψ
+      ext v
+      have := congrArg (fun e : (Fin k ↪ Fin n) => (e v : ℕ)) hφψ
+      simpa using this
+    simpa [countCopies] using
+      Fintype.card_le_of_injective
+        (fun φ : H ↪g G => φ.toEmbedding) hinj
+  have hDesc : Fintype.card (Fin k ↪ Fin n) = Nat.descFactorial n k := by
+    simpa [Fintype.card_fin] using
+      (Fintype.card_embedding_eq (α := Fin k) (β := Fin n))
+  simpa [hDesc] using hCard
+
+/-- Sanity check: counting labelled copies of `K₂` inside `K₃` respects the
+descending factorial bound. -/
+example :
+    countCopies (SimpleGraph.completeGraph (Fin 2))
+        (SimpleGraph.completeGraph (Fin 3)) ≤ 6 := by
+  have :=
+    countCopies_le_descFactorial
+      (H := SimpleGraph.completeGraph (Fin 2))
+      (G := SimpleGraph.completeGraph (Fin 3))
+  simpa [Nat.descFactorial] using this
+
 /-- Stage 1 lemma: isomorphic host graphs admit equally many labelled copies. -/
 lemma countCopies_congr_right {H : SimpleGraph α}
     {G G' : SimpleGraph β} (e : G ≃g G') :

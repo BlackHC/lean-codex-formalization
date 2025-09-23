@@ -62,6 +62,14 @@ noncomputable def gnpSampleMeasure (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1
     Measure (EdgePairs n → Bool) :=
   Measure.pi fun _ : EdgePairs n => bernoulliMeasure p hp
 
+instance instIsProbabilityMeasure_gnpSampleMeasure (n : ℕ) (p : ℝ)
+    (hp : 0 ≤ p ∧ p ≤ 1) :
+    IsProbabilityMeasure (gnpSampleMeasure (n := n) (p := p) hp) := by
+  classical
+  simpa [gnpSampleMeasure] using
+    (Measure.pi.instIsProbabilityMeasure
+      (μ := fun _ : EdgePairs n => bernoulliMeasure p hp))
+
 /-- Extend an outcome on the edge index set to a Boolean indicator on all of
 `Sym2 (Fin n)` by forcing diagonal elements to be absent. -/
 noncomputable def edgeIndicator (ω : EdgePairs n → Bool) : Sym2 (Fin n) → Bool :=
@@ -112,6 +120,85 @@ measure on edge indicators. -/
 noncomputable def gnpDistribution (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
     Measure (SimpleGraph (Fin n)) :=
   (gnpSampleMeasure (n := n) (p := p) hp).map (gnp (n := n))
+
+/-- Stage 2 random variable: the number of labelled copies of `H` inside the
+random graph `G(n,p)` realised by an indicator configuration. -/
+noncomputable def countCopiesRV {k n : ℕ} (H : SimpleGraph (Fin k)) :
+    (EdgePairs n → Bool) → ℕ :=
+  fun ω => countCopies H (gnp (n := n) ω)
+
+@[simp]
+lemma countCopiesRV_apply {k n : ℕ} (H : SimpleGraph (Fin k))
+    (ω : EdgePairs n → Bool) :
+    countCopiesRV (n := n) H ω = countCopies H (gnp (n := n) ω) := rfl
+
+lemma measurable_countCopiesRV {k n : ℕ} (H : SimpleGraph (Fin k)) :
+    Measurable
+      (fun ω : EdgePairs n → Bool =>
+        (countCopiesRV (n := n) H ω : ℝ)) := by
+  classical
+  have hGraph :
+      Measurable
+        (fun G : SimpleGraph (Fin n) => (countCopies H G : ℝ)) := by
+    simpa using
+      (measurable_of_finite
+        (f := fun G : SimpleGraph (Fin n) => (countCopies H G : ℝ)))
+  simpa [countCopiesRV] using hGraph.comp (measurable_gnp (n := n))
+
+/-- Stage 2 bound: the copy-counting random variable is integrable because it is
+bounded by the descending factorial `n.descFactorial k` for every configuration.
+-/
+lemma integrable_countCopies {k n : ℕ} (H : SimpleGraph (Fin k)) (p : ℝ)
+    (hp : 0 ≤ p ∧ p ≤ 1) :
+    Integrable
+      (fun ω : EdgePairs n → Bool =>
+        (countCopiesRV (n := n) H ω : ℝ))
+      (gnpSampleMeasure (n := n) (p := p) hp) := by
+  classical
+  have hBound :
+      ∀ ω : EdgePairs n → Bool,
+        ‖(countCopiesRV (n := n) H ω : ℝ)‖
+          ≤ (Nat.descFactorial n k : ℝ) := by
+    intro ω
+    have hNat :
+        (countCopies H (gnp (n := n) ω) : ℝ)
+          ≤ (Nat.descFactorial n k : ℝ) := by
+      exact_mod_cast
+        countCopies_le_descFactorial
+          (H := H) (G := gnp (n := n) ω)
+    have hNonneg :
+        0 ≤ (countCopies H (gnp (n := n) ω) : ℝ) := by
+      exact_mod_cast (Nat.zero_le _)
+    simpa [countCopiesRV, abs_of_nonneg hNonneg] using hNat
+  have hFinite :
+      HasFiniteIntegral
+        (fun ω : EdgePairs n → Bool =>
+          (countCopiesRV (n := n) H ω : ℝ))
+        (gnpSampleMeasure (n := n) (p := p) hp) := by
+    refine HasFiniteIntegral.of_bounded
+      (μ := gnpSampleMeasure (n := n) (p := p) hp)
+      (f := fun ω : EdgePairs n → Bool =>
+        (countCopiesRV (n := n) H ω : ℝ))
+      (C := (Nat.descFactorial n k : ℝ)) ?_
+    exact Filter.Eventually.of_forall hBound
+  refine ⟨(measurable_countCopiesRV (n := n) H).aestronglyMeasurable, hFinite⟩
+
+/-- Sanity check: counting labelled copies of `K₁` in `G(2, 0)` defines an
+integrable real-valued random variable. -/
+example :
+    Integrable
+      (fun ω : EdgePairs 2 → Bool =>
+        (countCopiesRV (n := 2)
+            (SimpleGraph.completeGraph (Fin 1)) ω : ℝ))
+      (gnpSampleMeasure (n := 2) (p := 0) (⟨le_rfl, by norm_num⟩)) := by
+  have hp0 : 0 ≤ (0 : ℝ) ∧ (0 : ℝ) ≤ 1 := ⟨le_rfl, by norm_num⟩
+  simpa [hp0]
+    using
+    integrable_countCopies
+      (n := 2)
+      (H := SimpleGraph.completeGraph (Fin 1))
+      (p := 0)
+      (hp := hp0)
 
 lemma gnpDistribution_apply (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
     (s : Set (SimpleGraph (Fin n))) (hs : MeasurableSet s) :
