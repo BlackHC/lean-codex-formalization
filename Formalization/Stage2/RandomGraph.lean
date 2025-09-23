@@ -208,6 +208,60 @@ lemma gnpDistribution_apply (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
   simpa [gnpDistribution] using
     Measure.map_apply (measurable_gnp (n := n)) hs
 
+lemma bernoulliMeasure_singleton_true (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
+    bernoulliMeasure p hp ({true} : Set Bool) = ENNReal.ofReal p := by
+  classical
+  have hTrue :
+      bernoulliMeasure p hp ({true} : Set Bool)
+        = (bernoulliPMF p hp) true := by
+    simpa [bernoulliMeasure] using
+      PMF.toMeasure_apply_singleton
+        (bernoulliPMF p hp)
+        true
+        (by simpa using (measurableSet_singleton (a := true)))
+  have hMass :
+      (bernoulliPMF p hp) true = ENNReal.ofNNReal ⟨p, hp.1⟩ := by
+    simp [bernoulliPMF, PMF.bernoulli_apply]
+  have hCoe :
+      ENNReal.ofNNReal ⟨p, hp.1⟩ = ENNReal.ofReal p := by
+    simpa using (ENNReal.ofReal_eq_coe_nnreal hp.1).symm
+  exact hTrue.trans (hMass.trans hCoe)
+
+lemma bernoulliMeasure_singleton_false (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
+    bernoulliMeasure p hp ({false} : Set Bool) = ENNReal.ofReal (1 - p) := by
+  classical
+  have hFalse :
+      bernoulliMeasure p hp ({false} : Set Bool)
+        = (bernoulliPMF p hp) false := by
+    simpa [bernoulliMeasure] using
+      PMF.toMeasure_apply_singleton
+        (bernoulliPMF p hp)
+        false
+        (by simpa using (measurableSet_singleton (a := false)))
+  have hp' : 0 ≤ 1 - p := sub_nonneg.mpr hp.2
+  have hMass :
+      (bernoulliPMF p hp) false = ENNReal.ofNNReal (1 - ⟨p, hp.1⟩) := by
+    simp [bernoulliPMF, PMF.bernoulli_apply]
+  have hNNReal :
+      (1 - ⟨p, hp.1⟩ : NNReal) = ⟨1 - p, hp'⟩ := by
+    ext
+    have hle : (⟨p, hp.1⟩ : NNReal) ≤ (1 : NNReal) := by
+      exact_mod_cast hp.2
+    simpa using (NNReal.coe_sub hle)
+  have hCoe :
+      ENNReal.ofNNReal (1 - ⟨p, hp.1⟩) = ENNReal.ofReal (1 - p) := by
+    simpa [hNNReal] using (ENNReal.ofReal_eq_coe_nnreal hp').symm
+  exact hFalse.trans (hMass.trans hCoe)
+
+lemma bernoulliMeasure_univ (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
+    bernoulliMeasure p hp (Set.univ : Set Bool) = 1 := by
+  classical
+  simpa using (measure_univ (μ := bernoulliMeasure p hp))
+
+/- TODO (Stage 2): Reintroduce the `gnpCylinderMeasure` lemma showing that the
+probability of realising finitely many fixed edge indicators factors as a
+product, once the independence argument is finalised. -/
+
 /-- Sanity check: for `n = 2`, the empty indicator configuration realises the
 empty graph. -/
 example :
