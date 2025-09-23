@@ -13,6 +13,7 @@ The project uses Lean `v4.24.0-rc1` (see `lean-toolchain`). The plan below recor
 ## Development Environment Constraints
 
 - After the container launches there is no internet access. Commands such as `lake update` and `lake exe cache get` will fail inside the session. Record any dependency changes directly in `lakefile.lean` and notify the maintainer so they can refresh caches outside the container.
+- Treat `lake-manifest.json` as an immutable lockfile. **Never revert or "clean up" this file**, even if it appears modified—leave the tracked version untouched unless a maintainer explicitly supplies a replacement manifest produced outside the container.
 
 ## Formalization Plan
 
