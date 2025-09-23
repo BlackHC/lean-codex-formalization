@@ -59,6 +59,18 @@ lemma graphOfEdgeFinset_adj {n : ℕ} {edges : Finset (Sym2 (Fin n))} {u v : Fin
   classical
   simp [graphOfEdgeFinset, SimpleGraph.fromEdgeSet_adj]
 
+/-- Sanity check: the constructor registers listed pairs as edges. -/
+example :
+    (graphOfEdgeFinset 3 {s((0 : Fin 3), (1 : Fin 3))}).Adj 0 1 := by
+  classical
+  simp
+
+/-- Sanity check: unlisted pairs are not edges of the constructed graph. -/
+example :
+    ¬ (graphOfEdgeFinset 3 {s((0 : Fin 3), (1 : Fin 3))}).Adj 1 2 := by
+  classical
+  simp
+
 section EdgeCount
 
 variable {V : Type*} [Fintype V]
@@ -73,11 +85,34 @@ lemma edgeCount_bot [DecidableRel ((⊥ : SimpleGraph V).Adj)] :
   classical
   simp [edgeCount]
 
+/-- Sanity check: the empty graph on `Fin 2` contains no edges. -/
+example : edgeCount (⊥ : SimpleGraph (Fin 2)) = 0 := by
+  classical
+  simp [edgeCount_bot (V := Fin 2)]
+
 lemma edgeCount_le_of_subgraph {G H : SimpleGraph V}
     [DecidableRel G.Adj] [DecidableRel H.Adj] (h : G ≤ H) :
     edgeCount G ≤ edgeCount H := by
   classical
   simpa [edgeCount] using Finset.card_le_card (edgeFinset_mono h)
+
+/-- Sanity check: taking a subgraph cannot increase the number of edges. -/
+example :
+    edgeCount
+        (graphOfEdgeFinset 3 {s((0 : Fin 3), (1 : Fin 3))})
+      ≤
+        edgeCount (SimpleGraph.completeGraph (Fin 3)) := by
+  classical
+  have hsub :
+      graphOfEdgeFinset 3 {s((0 : Fin 3), (1 : Fin 3))}
+        ≤ SimpleGraph.completeGraph (Fin 3) := by
+    intro u v h
+    have hne := (graphOfEdgeFinset_adj (u := u) (v := v)).1 h
+    simpa [SimpleGraph.completeGraph] using hne.2
+  simpa using
+    edgeCount_le_of_subgraph
+      (G := graphOfEdgeFinset 3 {s((0 : Fin 3), (1 : Fin 3))})
+      (H := SimpleGraph.completeGraph (Fin 3)) hsub
 
 lemma edgeCount_completeGraph (n : ℕ) :
     edgeCount (SimpleGraph.completeGraph (Fin n)) = Nat.choose n 2 := by
@@ -180,8 +215,12 @@ example :
         ∨ e = s((0 : Fin 3), (2 : Fin 3)) := by
       simpa [Finset.mem_insert, Finset.mem_singleton] using he
     cases this with
-    | inl h => simpa [h] using h01
-    | inr h => simpa [h] using h02
+    | inl h =>
+      subst h
+      exact h01
+    | inr h =>
+      subst h
+      exact h02
   simpa using
     edgeCount_graphOfEdgeFinset_of_loopless (n := 3)
       (edges := {s((0 : Fin 3), (1 : Fin 3)), s((0 : Fin 3), (2 : Fin 3))})
@@ -213,6 +252,15 @@ lemma countCopies_completeGraph_eq_card :
       right_inv := ?_ }
   · intro f; ext v; rfl
   · intro f; ext v; rfl
+
+/-- Sanity check: counting copies of `K₂` in `K₃` matches the injection count. -/
+example :
+    countCopies (SimpleGraph.completeGraph (Fin 2))
+        (SimpleGraph.completeGraph (Fin 3))
+      = Fintype.card (Fin 2 ↪ Fin 3) := by
+  classical
+  simpa using
+    countCopies_completeGraph_eq_card (α := Fin 2) (β := Fin 3)
 
 /-- Stage 1 lemma: the number of labelled embeddings from a complete graph on
 `α` to one on `β` is the descending factorial counting injections between the
@@ -284,7 +332,7 @@ example :
       = countCopies (SimpleGraph.completeGraph (Fin 2))
         (SimpleGraph.completeGraph (Fin 3)) := by
   classical
-  simpa using
+  exact
     countCopies_congr_left
       (G := SimpleGraph.completeGraph (Fin 3))
       (e := SimpleGraph.Iso.completeGraph (Equiv.swap (0 : Fin 2) 1))
@@ -414,6 +462,33 @@ lemma countCopies_subtype_completeGraph (J : SimpleGraph α) (H : SimpleGraph β
   simpa using countCopies_subtype (J := J) (H := H)
       (G := SimpleGraph.completeGraph (Fin n)) f
 
+/-- Sanity check: embeddings of `K₂` landing in a fixed labelled `K₃` inside `K₄` are
+counted by `Nat.descFactorial 3 2`. -/
+example :
+    Fintype.card
+        {ψ : SimpleGraph.completeGraph (Fin 2)
+              ↪g SimpleGraph.completeGraph (Fin 4) |
+            Set.range ψ.toEmbedding ⊆
+              Set.range
+                (SimpleGraph.Embedding.completeGraph
+                  (Fin.castLEEmb (show 3 ≤ 4 by decide))).toEmbedding}
+      = Nat.descFactorial 3 2 := by
+  classical
+  let f : SimpleGraph.completeGraph (Fin 3)
+      ↪g SimpleGraph.completeGraph (Fin 4) :=
+    SimpleGraph.Embedding.completeGraph (Fin.castLEEmb (show 3 ≤ 4 by decide))
+  have h :=
+    countCopies_subtype_completeGraph
+      (J := SimpleGraph.completeGraph (Fin 2))
+      (H := SimpleGraph.completeGraph (Fin 3))
+      (n := 4) f
+  have hcount :
+      countCopies (SimpleGraph.completeGraph (Fin 2))
+          (SimpleGraph.completeGraph (Fin 3))
+        = Nat.descFactorial 3 2 := by
+    simpa using countCopies_completeGraph_fin (k := 2) (n := 3)
+  simpa [f, hcount] using h
+
 lemma uniformProbability_double_count (J : SimpleGraph α) (H : SimpleGraph β)
     (n : ℕ) (f : H ↪g SimpleGraph.completeGraph (Fin n)) :
     ((Fintype.card
@@ -527,6 +602,16 @@ lemma edgeInducedSubgraph_sup (G : SimpleGraph V) (E F : Set (Sym2 V)) :
       = edgeInducedSubgraph G E ⊔ edgeInducedSubgraph G F := by
   ext u v
   simp [edgeInducedSubgraph, Set.mem_union, SimpleGraph.sup_adj, and_or_left]
+
+/-- Sanity check: the union of edge-induced subgraphs retains edges from either set. -/
+example :
+    (edgeInducedSubgraph (SimpleGraph.completeGraph (Fin 3))
+        ((({s((0 : Fin 3), (1 : Fin 3))} :
+              Finset (Sym2 (Fin 3))) : Set (Sym2 (Fin 3))) ∪
+          (({s((1 : Fin 3), (2 : Fin 3))} :
+              Finset (Sym2 (Fin 3))) : Set (Sym2 (Fin 3))))).Adj 1 2 := by
+  classical
+  simp [edgeInducedSubgraph, SimpleGraph.completeGraph]
 
 @[simp]
 lemma edgeInducedSubgraph_inf (G : SimpleGraph V) (E F : Set (Sym2 V)) :
