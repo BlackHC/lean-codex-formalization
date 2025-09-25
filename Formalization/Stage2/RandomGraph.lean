@@ -183,6 +183,33 @@ lemma integrable_countCopies {k n : ℕ} (H : SimpleGraph (Fin k)) (p : ℝ)
     exact Filter.Eventually.of_forall hBound
   refine ⟨(measurable_countCopiesRV (n := n) H).aestronglyMeasurable, hFinite⟩
 
+/-- Stage 2 transfer: the copy-counting random variable remains integrable when pushed
+forward to the distribution on simple graphs. -/
+lemma integrable_countCopies_distribution {k n : ℕ}
+    (H : SimpleGraph (Fin k)) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
+    Integrable
+      (fun G : SimpleGraph (Fin n) => (countCopies H G : ℝ))
+      (gnpDistribution (n := n) (p := p) hp) := by
+  classical
+  have hRV :=
+    integrable_countCopies (n := n) (H := H) (p := p) hp
+  have hMeas :
+      AEStronglyMeasurable
+        (fun G : SimpleGraph (Fin n) => (countCopies H G : ℝ))
+        (gnpDistribution (n := n) (p := p) hp) := by
+    simpa using
+      (measurable_of_finite
+        (f := fun G : SimpleGraph (Fin n) => (countCopies H G : ℝ))).aestronglyMeasurable
+  refine
+    (integrable_map_measure
+      (μ := gnpSampleMeasure (n := n) (p := p) hp)
+      (f := gnp (n := n))
+      (g := fun G : SimpleGraph (Fin n) => (countCopies H G : ℝ))
+      hMeas
+      (measurable_gnp (n := n)).aemeasurable).mpr
+      ?_
+  simpa [countCopiesRV] using hRV
+
 /-- Sanity check: counting labelled copies of `K₁` in `G(2, 0)` defines an
 integrable real-valued random variable. -/
 example :
@@ -198,6 +225,20 @@ example :
       (n := 2)
       (H := SimpleGraph.completeGraph (Fin 1))
       (p := 0)
+
+/-- Sanity check: integrability is preserved on the push-forward distribution. -/
+example :
+    Integrable
+      (fun G : SimpleGraph (Fin 2) =>
+        (countCopies (SimpleGraph.completeGraph (Fin 1)) G : ℝ))
+      (gnpDistribution (n := 2) (p := 0) (⟨le_rfl, by norm_num⟩)) := by
+  have hp0 : 0 ≤ (0 : ℝ) ∧ (0 : ℝ) ≤ 1 := ⟨le_rfl, by norm_num⟩
+  simpa [hp0]
+    using
+      integrable_countCopies_distribution
+        (n := 2)
+        (H := SimpleGraph.completeGraph (Fin 1))
+        (p := 0)
 
 /-- For distinct vertices `u ≠ v`, the `G(n,p)` edge event corresponds to the
 evaluation map on the coordinate indexed by `{u, v}`. -/
