@@ -208,6 +208,96 @@ lemma gnpDistribution_apply (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
   simpa [gnpDistribution] using
     Measure.map_apply (measurable_gnp (n := n)) hs
 
+lemma bernoulliMeasure_singleton_true (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
+    bernoulliMeasure p hp {True} = ENNReal.ofReal p := by
+  classical
+  have :=
+    PMF.toMeasure_apply_singleton
+      (bernoulliPMF p hp)
+      (True)
+      (by simpa using (measurableSet_singleton (a := True)))
+  simpa [bernoulliMeasure, bernoulliPMF, PMF.bernoulli_apply,
+    ENNReal.ofReal_coe_nnreal] using this
+
+lemma bernoulliMeasure_singleton_false (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
+    bernoulliMeasure p hp {False} = ENNReal.ofReal (1 - p) := by
+  classical
+  have :=
+    PMF.toMeasure_apply_singleton
+      (bernoulliPMF p hp)
+      (False)
+      (by simpa using (measurableSet_singleton (a := False)))
+  have hp' : 0 ≤ 1 - p := sub_nonneg.mpr hp.2
+  simp [bernoulliMeasure, bernoulliPMF, PMF.bernoulli_apply,
+    ENNReal.ofReal_coe_nnreal, hp', sub_eq_add_neg, add_comm, add_left_comm,
+    add_assoc] at this
+  simpa [hp'] using this
+
+lemma bernoulliMeasure_univ (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
+    bernoulliMeasure p hp (Set.univ : Set Bool) = 1 := by
+  classical
+  simpa using (measure_univ (bernoulliMeasure (p := p) hp))
+
+lemma gnpCylinderMeasure (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
+    (S : Finset (EdgePairs n)) (b : EdgePairs n → Bool) :
+    gnpSampleMeasure (n := n) (p := p) hp
+        {ω | ∀ e ∈ S, ω e = b e}
+      = ∏ e in S,
+          (if b e then ENNReal.ofReal p else ENNReal.ofReal (1 - p)) := by
+  classical
+  let s : EdgePairs n → Set Bool := fun e =>
+    if h : e ∈ S then {b e} else Set.univ
+  have hSet :
+      {ω | ∀ e ∈ S, ω e = b e} =
+        Set.pi Set.univ s := by
+    ext ω; constructor
+    · intro hω
+      intro e _
+      by_cases he : e ∈ S
+      · have := hω e he
+        simp [s, he, this]
+      · simp [s, he]
+    · intro hω e he
+      have : ω e ∈ {b e} := by
+        simpa [s, he] using hω e trivial
+      simpa using this
+  have hs : ∀ e, MeasurableSet (s e) := by
+    intro e
+    by_cases he : e ∈ S
+    · simp [s, he]
+    · simp [s, he]
+  have hprod :=
+    Measure.pi_pi_aux
+      (μ := fun _ : EdgePairs n => bernoulliMeasure p hp)
+      (s := s)
+      (hs := hs)
+  have hUniv :
+      ∏ e : EdgePairs n, bernoulliMeasure p hp (s e)
+        = ∏ e ∈ S, bernoulliMeasure p hp (s e) := by
+    refine
+      (Finset.prod_subset (s := S)
+        (t := (Finset.univ : Finset (EdgePairs n)))
+        (by intro e he; simp) ?_).symm
+    intro e he hnot
+    simp [s, hnot, bernoulliMeasure_univ, hp] 
+  have hEdge :
+      ∏ e ∈ S, bernoulliMeasure p hp (s e)
+        = ∏ e in S,
+            (if b e then ENNReal.ofReal p else ENNReal.ofReal (1 - p)) := by
+    refine Finset.prod_congr rfl ?_
+    intro e he
+    have : s e = {b e} := by simp [s, he]
+    simp [this, bernoulliMeasure_singleton_true,
+      bernoulliMeasure_singleton_false, hp.1, hp.2]
+  have hRewrite := hUniv.trans hEdge
+  have hMeasure :
+      gnpSampleMeasure (n := n) (p := p) hp
+          (Set.pi Set.univ s)
+        = ∏ e in S,
+            (if b e then ENNReal.ofReal p else ENNReal.ofReal (1 - p)) := by
+    simpa [hRewrite] using hprod
+  simpa [hSet] using hMeasure
+
 /-- Sanity check: for `n = 2`, the empty indicator configuration realises the
 empty graph. -/
 example :

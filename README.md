@@ -77,7 +77,7 @@ Lean tasks:
    - [ ] Formalize Markov's inequality using `mathlib`'s version and instantiate it for `Z_{H'}`. This verifies the inequalities `p_E ≤ p_Etilde ≤ p_crit`.
    - [ ] Capture the instantiated inequalities as Lean lemmas (`pE_le_pEtilde`, `pEtilde_le_pCrit`) and add `@[simp]` or `lemma` wrappers to make them directly reusable in Stage 3.
 
-*Status (Stage 2):* The module `Formalization/Stage2/RandomGraph.lean` introduces the Bernoulli product measure over edge indicators, the random variable `gnp`, and the measurability lemma `Stage2.measurable_gnp`. The remaining tasks focus on integrability statements and expectation computations for subgraph-counting random variables.
+*Status (Stage 2):* The module `Formalization/Stage2/RandomGraph.lean` introduces the Bernoulli product measure over edge indicators, the random variable `gnp`, and the measurability lemma `Stage2.measurable_gnp`. The new lemma `Stage2.gnpCylinderMeasure` records the exact probability of prescribing finitely many edge indicators, a stepping stone for the expectation computations of subgraph-counting random variables. The remaining tasks focus on integrability statements and expectation calculations that build on this cylinder-measure identity.
 
 ### Stage 3 — Threshold Definitions
 
