@@ -198,16 +198,26 @@ example :
       (n := 2)
       (H := SimpleGraph.completeGraph (Fin 1))
       (p := 0)
-      (hp := hp0)
 
-lemma gnpDistribution_apply (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
-    (s : Set (SimpleGraph (Fin n))) (hs : MeasurableSet s) :
-    gnpDistribution (n := n) (p := p) hp s =
-      gnpSampleMeasure (n := n) (p := p) hp ((gnp (n := n)) ⁻¹' s) := by
+/-- For distinct vertices `u ≠ v`, the `G(n,p)` edge event corresponds to the
+evaluation map on the coordinate indexed by `{u, v}`. -/
+lemma edgeEvent_eq_eval_preimage {n : ℕ} {u v : Fin n} (h : u ≠ v) :
+    {ω : EdgePairs n → Bool | (gnp (n := n) ω).Adj u v}
+      = (fun ω => ω ⟨s(u, v), by
+            classical
+            simpa [Sym2.mk_isDiag_iff, h]⟩)
+          ⁻¹' ({true} : Set Bool) := by
   classical
-  simpa [gnpDistribution] using
-    Measure.map_apply (measurable_gnp (n := n)) hs
+  have he : ¬(s(u, v)).IsDiag := by simpa [Sym2.mk_isDiag_iff, h]
+  ext ω
+  have :
+      (gnp (n := n) ω).Adj u v ↔
+        (edgeIndicator (n := n) ω (s(u, v)) = true) := by
+    simpa [gnp_adj, h]
+  simpa [Set.preimage, this, edgeIndicator_nonDiag (n := n) (ω := ω)
+      (e := s(u, v)) he]
 
+/-- Bernoulli product measure sanity check: the probability of `true` is `p`. -/
 lemma bernoulliMeasure_singleton_true (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
     bernoulliMeasure p hp ({true} : Set Bool) = ENNReal.ofReal p := by
   classical
@@ -227,6 +237,7 @@ lemma bernoulliMeasure_singleton_true (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
     simpa using (ENNReal.ofReal_eq_coe_nnreal hp.1).symm
   exact hTrue.trans (hMass.trans hCoe)
 
+/-- Bernoulli product measure sanity check: the probability of `false` is `1 - p`. -/
 lemma bernoulliMeasure_singleton_false (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
     bernoulliMeasure p hp ({false} : Set Bool) = ENNReal.ofReal (1 - p) := by
   classical
@@ -253,10 +264,74 @@ lemma bernoulliMeasure_singleton_false (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
     simpa [hNNReal] using (ENNReal.ofReal_eq_coe_nnreal hp').symm
   exact hFalse.trans (hMass.trans hCoe)
 
+/-- Bernoulli product measure sanity check: total mass equals one. -/
 lemma bernoulliMeasure_univ (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
     bernoulliMeasure p hp (Set.univ : Set Bool) = 1 := by
   classical
   simpa using (measure_univ (μ := bernoulliMeasure p hp))
+
+/-- The probability that the random graph `G(n,p)` places an edge between two
+distinct vertices is exactly `p`.  We state the result in terms of the measure
+of the corresponding event, which naturally lives in `ℝ≥0∞`. -/
+lemma gnp_edge_measure {n : ℕ} {p : ℝ} (hp : 0 ≤ p ∧ p ≤ 1)
+    {u v : Fin n} (h : u ≠ v) :
+    (gnpSampleMeasure (n := n) (p := p) hp)
+        {ω : EdgePairs n → Bool | (gnp (n := n) ω).Adj u v}
+      = ENNReal.ofReal p := by
+  classical
+  have hEval :=
+    MeasureTheory.measurePreserving_eval
+      (μ := fun _ : EdgePairs n => bernoulliMeasure p hp)
+      ⟨s(u, v), by
+        simpa [Sym2.mk_isDiag_iff, h]⟩
+  have hSet : MeasurableSet ({true} : Set Bool) := by simp
+  have hTrue := bernoulliMeasure_singleton_true (p := p) hp
+  have hEvent := edgeEvent_eq_eval_preimage (n := n) (u := u) (v := v) h
+  have hMeasureSet :
+      (gnpSampleMeasure (n := n) (p := p) hp)
+          {ω : EdgePairs n → Bool | (gnp (n := n) ω).Adj u v}
+        = (gnpSampleMeasure (n := n) (p := p) hp)
+            ((fun ω : EdgePairs n → Bool =>
+                ω ⟨s(u, v), by
+                  simpa [Sym2.mk_isDiag_iff, h]⟩)
+              ⁻¹' ({true} : Set Bool)) := by
+    simpa using congrArg
+      (fun s => (gnpSampleMeasure (n := n) (p := p) hp) s) hEvent
+  calc
+    (gnpSampleMeasure (n := n) (p := p) hp)
+        {ω : EdgePairs n → Bool | (gnp (n := n) ω).Adj u v}
+        = (gnpSampleMeasure (n := n) (p := p) hp)
+            ((fun ω : EdgePairs n → Bool =>
+                ω ⟨s(u, v), by
+                  simpa [Sym2.mk_isDiag_iff, h]⟩)
+              ⁻¹' ({true} : Set Bool)) := hMeasureSet
+    _ = (bernoulliMeasure p hp) ({true} : Set Bool) := by
+      simpa using
+        hEval.measure_preimage
+          (μa := gnpSampleMeasure (n := n) (p := p) hp)
+          (μb := bernoulliMeasure p hp)
+          (s := {true})
+          (hSet.nullMeasurableSet)
+    _ = ENNReal.ofReal p := hTrue
+
+/-- Sanity check: in `G(3, 1/2)` the edge event between vertices `0` and `1`
+has probability mass `1/2` with respect to the product measure. -/
+example :
+    (gnpSampleMeasure (n := 3) (p := (1 : ℝ) / 2)
+        (⟨by norm_num, by norm_num⟩))
+        {ω : EdgePairs 3 → Bool | (gnp (n := 3) ω).Adj 0 1}
+      = ENNReal.ofReal ((1 : ℝ) / 2) := by
+  have hp : 0 ≤ (1 : ℝ) / 2 ∧ (1 : ℝ) / 2 ≤ 1 := by constructor <;> norm_num
+  simpa using gnp_edge_measure (n := 3) (p := (1 : ℝ) / 2) hp (u := 0) (v := 1)
+    (by decide : (0 : Fin 3) ≠ 1)
+
+lemma gnpDistribution_apply (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
+    (s : Set (SimpleGraph (Fin n))) (hs : MeasurableSet s) :
+    gnpDistribution (n := n) (p := p) hp s =
+      gnpSampleMeasure (n := n) (p := p) hp ((gnp (n := n)) ⁻¹' s) := by
+  classical
+  simpa [gnpDistribution] using
+    Measure.map_apply (measurable_gnp (n := n)) hs
 
 /- TODO (Stage 2): Reintroduce the `gnpCylinderMeasure` lemma showing that the
 probability of realising finitely many fixed edge indicators factors as a
