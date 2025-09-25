@@ -333,9 +333,131 @@ lemma gnpDistribution_apply (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
   simpa [gnpDistribution] using
     Measure.map_apply (measurable_gnp (n := n)) hs
 
-/- TODO (Stage 2): Reintroduce the `gnpCylinderMeasure` lemma showing that the
-probability of realising finitely many fixed edge indicators factors as a
-product, once the independence argument is finalised. -/
+lemma edgeIndicator_iIndepFun (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
+    ProbabilityTheory.iIndepFun
+      (fun e (ω : EdgePairs n → Bool) => ω e)
+      (gnpSampleMeasure (n := n) (p := p) hp) := by
+  classical
+  simpa [gnpSampleMeasure]
+    using
+      (ProbabilityTheory.iIndepFun_pi
+        (μ := fun _ : EdgePairs n => bernoulliMeasure p hp)
+        (X := fun _ : EdgePairs n => (fun b : Bool => b))
+        (mX := fun _ => measurable_id.aemeasurable))
+
+/-- Probability of realising a prescribed finite set of edges in `G(n,p)` equals `p`
+raised to the number of constraints. -/
+lemma gnpCylinderMeasure (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
+    (S : Finset (EdgePairs n)) :
+    (gnpSampleMeasure (n := n) (p := p) hp)
+        {ω : EdgePairs n → Bool | ∀ e ∈ S, ω e = true}
+      = ENNReal.ofReal (p ^ S.card) := by
+  classical
+  have hindep :=
+    edgeIndicator_iIndepFun (n := n) (p := p) hp
+  have hmeas :
+      ∀ e ∈ S,
+        MeasurableSet ((fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool)) := by
+    intro e _
+    have hTrue : MeasurableSet ({true} : Set Bool) := by simp
+    simpa using hTrue.preimage (measurable_pi_apply e)
+  have hset :
+      {ω : EdgePairs n → Bool | ∀ e ∈ S, ω e = true} =
+        ⋂ e ∈ S, (fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool) := by
+    classical
+    ext ω; constructor
+    · intro hω
+      refine Set.mem_iInter₂.mpr ?_
+      intro e he
+      have htrue := hω e he
+      simpa [Set.preimage, Set.mem_setOf_eq] using htrue
+    · intro hω e he
+      have hmem := Set.mem_iInter₂.mp hω e he
+      simpa [Set.preimage, Set.mem_setOf_eq] using hmem
+  have hproduct :=
+    hindep.measure_inter_preimage_eq_mul
+      (μ := gnpSampleMeasure (n := n) (p := p) hp)
+      (S := S)
+      (sets := fun _ => ({true} : Set Bool))
+      (by
+        intro e he
+        simpa using (hmeas e he))
+  have hfactor (e : EdgePairs n) :
+      (gnpSampleMeasure (n := n) (p := p) hp)
+          ((fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool))
+        = ENNReal.ofReal p := by
+    have hEval :=
+      MeasureTheory.measurePreserving_eval
+        (μ := fun _ : EdgePairs n => bernoulliMeasure p hp) e
+    have hmeasTrue : MeasurableSet ({true} : Set Bool) := by simp
+    have hBern := bernoulliMeasure_singleton_true (p := p) hp
+    have hMeasure :=
+      hEval.measure_preimage
+        (μa := gnpSampleMeasure (n := n) (p := p) hp)
+        (μb := bernoulliMeasure p hp)
+        (s := {true})
+        (hmeasTrue.nullMeasurableSet)
+    simpa [gnpSampleMeasure, hBern] using hMeasure
+  classical
+  have hprodEq :
+      ∏ e ∈ S,
+          (gnpSampleMeasure (n := n) (p := p) hp)
+            ((fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool))
+        = ENNReal.ofReal (p ^ S.card) := by
+    have hp_nonneg : 0 ≤ p := hp.1
+    refine Finset.induction_on S ?base ?step
+    · simp
+    · intro a S ha hS
+      have hdis : a ∉ S := by simpa using ha
+      have hProd :
+          ∏ e ∈ S,
+              (gnpSampleMeasure (n := n) (p := p) hp)
+                ((fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool))
+            = ENNReal.ofReal (p ^ S.card) := hS
+      calc
+        ∏ e ∈ insert a S,
+            (gnpSampleMeasure (n := n) (p := p) hp)
+              ((fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool))
+            =
+              (gnpSampleMeasure (n := n) (p := p) hp)
+                  ((fun ω : EdgePairs n → Bool => ω a) ⁻¹' ({true} : Set Bool))
+                *
+                  ∏ e ∈ S,
+                      (gnpSampleMeasure (n := n) (p := p) hp)
+                        ((fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool)) := by
+              simp [Finset.prod_insert, hdis]
+        _ = ENNReal.ofReal p *
+              ∏ e ∈ S,
+                  (gnpSampleMeasure (n := n) (p := p) hp)
+                    ((fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool)) := by
+          simp [hfactor]
+        _ = ENNReal.ofReal p * ENNReal.ofReal (p ^ S.card) := by
+          simpa [hProd, ENNReal.ofReal_pow hp_nonneg]
+        _ = ENNReal.ofReal (p ^ S.card) * ENNReal.ofReal p := by
+          simp [mul_comm]
+        _ = ENNReal.ofReal (p * p ^ S.card) := by
+          have hmul := ENNReal.ofReal_mul (p := p) (q := p ^ S.card) hp_nonneg
+          simpa [mul_comm, mul_left_comm, mul_assoc] using hmul.symm
+        _ = ENNReal.ofReal (p ^ (insert a S).card) := by
+          have hcard : (insert a S).card = S.card.succ := by
+            simpa using (Finset.card_insert_of_notMem (a := a) (s := S) hdis)
+          simp [pow_succ, mul_comm, hcard]
+  calc
+    (gnpSampleMeasure (n := n) (p := p) hp)
+        {ω : EdgePairs n → Bool | ∀ e ∈ S, ω e = true}
+        = (gnpSampleMeasure (n := n) (p := p) hp)
+            (⋂ e ∈ S,
+              (fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool)) := by
+          simpa [hset]
+    _ =
+        ∏ e ∈ S,
+            (gnpSampleMeasure (n := n) (p := p) hp)
+              ((fun ω : EdgePairs n → Bool => ω e) ⁻¹' ({true} : Set Bool)) :=
+          hproduct
+    _ = ENNReal.ofReal (p ^ S.card) := hprodEq
+
+/- TODO (Stage 2): Leverage `gnpCylinderMeasure` to compute expectations for the
+copy-counting random variables and deduce the `M_H p^{e(H)}` formula. -/
 
 /-- Sanity check: for `n = 2`, the empty indicator configuration realises the
 empty graph. -/
