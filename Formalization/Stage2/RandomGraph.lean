@@ -128,6 +128,16 @@ noncomputable def countCopiesRV {k n : ℕ} (H : SimpleGraph (Fin k)) :
   fun ω => countCopies H (gnp (n := n) ω)
 
 @[simp]
+lemma countCopiesRV_singleVertex {n : ℕ} (ω : EdgePairs n → Bool) :
+    countCopiesRV (n := n)
+        (SimpleGraph.completeGraph (Fin 1)) ω = n := by
+  classical
+  simpa [countCopiesRV]
+    using
+      countCopies_singleVertex_top
+        (G := gnp (n := n) ω)
+
+@[simp]
 lemma countCopiesRV_apply {k n : ℕ} (H : SimpleGraph (Fin k))
     (ω : EdgePairs n → Bool) :
     countCopiesRV (n := n) H ω = countCopies H (gnp (n := n) ω) := rfl
@@ -510,6 +520,80 @@ lemma gnpCylinderMeasure (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
     _ = (ENNReal.ofReal p) ^ S.card := hpowConst
     _ = ENNReal.ofReal (p ^ S.card) := by
       simpa using hpow.symm
+
+/-!### Stage 2 sanity checks
+
+The expectation formula for the copy-counting random variables predicts that
+the single-vertex pattern has expectation `n`, since it contains `n`
+labelled embeddings and no edge constraints.  The following lemmas record
+this calculation explicitly as a baseline for the general `M_H p^{e(H)}`
+identity. -/
+
+lemma expected_countCopies_singleVertex (n : ℕ) (p : ℝ)
+    (hp : 0 ≤ p ∧ p ≤ 1) :
+    ∫ ω,
+        (countCopiesRV (n := n)
+            (SimpleGraph.completeGraph (Fin 1)) ω : ℝ)
+        ∂(gnpSampleMeasure (n := n) (p := p) hp)
+      = n := by
+  classical
+  have hconst :
+      (fun ω : EdgePairs n → Bool =>
+        (countCopiesRV (n := n)
+            (SimpleGraph.completeGraph (Fin 1)) ω : ℝ))
+        = fun _ => (n : ℝ) := by
+    funext ω
+    simp [countCopiesRV_singleVertex]
+  have huniv :
+      (gnpSampleMeasure (n := n) (p := p) hp) (Set.univ) = 1 := by
+    simpa using
+      (measure_univ (μ := gnpSampleMeasure (n := n) (p := p) hp))
+  have hIntegralConst :
+      ∫ ω,
+          (countCopiesRV (n := n)
+              (SimpleGraph.completeGraph (Fin 1)) ω : ℝ)
+          ∂(gnpSampleMeasure (n := n) (p := p) hp)
+        = ∫ _ : EdgePairs n → Bool, (n : ℝ)
+            ∂(gnpSampleMeasure (n := n) (p := p) hp) := by
+    simp [hconst]
+  have hIntegralEval :
+      ∫ _ : EdgePairs n → Bool, (n : ℝ)
+          ∂(gnpSampleMeasure (n := n) (p := p) hp)
+        = (n : ℝ)
+            * ((gnpSampleMeasure (n := n) (p := p) hp) Set.univ).toReal := by
+    simpa using
+      (integral_const
+        (μ := gnpSampleMeasure (n := n) (p := p) hp)
+        (c := (n : ℝ)))
+  have htoReal :
+      ((gnpSampleMeasure (n := n) (p := p) hp) Set.univ).toReal = 1 := by
+    simpa [huniv] using
+      congrArg ENNReal.toReal huniv
+  calc
+    ∫ ω,
+        (countCopiesRV (n := n)
+            (SimpleGraph.completeGraph (Fin 1)) ω : ℝ)
+        ∂(gnpSampleMeasure (n := n) (p := p) hp)
+        = ∫ _ : EdgePairs n → Bool, (n : ℝ)
+            ∂(gnpSampleMeasure (n := n) (p := p) hp) := hIntegralConst
+    _ = (n : ℝ)
+          * ((gnpSampleMeasure (n := n) (p := p) hp) Set.univ).toReal := hIntegralEval
+    _ = (n : ℝ) * 1 := by simpa [htoReal]
+    _ = n := by simp
+
+/-- Sanity check: in `G(3, 1/2)` the expected number of single-vertex copies is `3`. -/
+example :
+    ∫ ω,
+        (countCopiesRV (n := 3)
+            (SimpleGraph.completeGraph (Fin 1)) ω : ℝ)
+        ∂(gnpSampleMeasure (n := 3) (p := (1 : ℝ) / 2)
+            (⟨by norm_num, by norm_num⟩))
+      = 3 := by
+  have hp : 0 ≤ (1 : ℝ) / 2 ∧ (1 : ℝ) / 2 ≤ 1 := by constructor <;> norm_num
+  simpa [hp]
+    using
+      expected_countCopies_singleVertex
+        (n := 3) (p := (1 : ℝ) / 2) hp
 
 /- TODO (Stage 2): Leverage `gnpCylinderMeasure` to compute expectations for the
 copy-counting random variables and deduce the `M_H p^{e(H)}` formula. -/
