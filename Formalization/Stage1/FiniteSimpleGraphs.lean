@@ -374,6 +374,46 @@ example :
 
 end CopyCounting
 
+/-- Stage 1 lemma: embeddings of the single-vertex graph into any host graph are
+in bijection with the vertices of the host.  The copy count therefore equals the
+number of vertices. -/
+lemma countCopies_singleVertex {α : Type*} [Fintype α] (G : SimpleGraph α) :
+    countCopies (SimpleGraph.completeGraph (Fin 1)) G = Fintype.card α := by
+  classical
+  have hEquiv :
+      (SimpleGraph.completeGraph (Fin 1) ↪g G) ≃ (Fin 1 ↪ α) := by
+    refine
+      { toFun := fun f => f.toEmbedding
+        invFun := fun f =>
+          { toEmbedding := f
+            map_rel_iff' := ?_ }
+        left_inv := ?_
+        right_inv := ?_ }
+    · intro u v
+      have : u = v := Subsingleton.elim _ _
+      subst this
+      simp
+    · intro f
+      ext v
+      rfl
+    · intro f
+      ext v
+      rfl
+  simpa [countCopies] using Fintype.card_congr hEquiv
+
+@[simp]
+lemma countCopies_singleVertex_top {α : Type*} [Fintype α] (G : SimpleGraph α) :
+    countCopies (⊤ : SimpleGraph (Fin 1)) G = Fintype.card α := by
+  simpa using countCopies_singleVertex (G := G)
+
+/-- Sanity check: the single-vertex copy count coincides with the vertex number
+for any host graph on `Fin n`. -/
+example {n : ℕ} :
+    countCopies (SimpleGraph.completeGraph (Fin 1))
+        (graphOfEdgeFinset n (∅ : Finset (Sym2 (Fin n)))) = n := by
+  classical
+  simpa [countCopies_singleVertex, Fintype.card_fin]
+
 section DoubleCounting
 
 variable {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
