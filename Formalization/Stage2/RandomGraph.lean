@@ -521,6 +521,29 @@ lemma gnpCylinderMeasure (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
     _ = ENNReal.ofReal (p ^ S.card) := by
       simpa using hpow.symm
 
+/-- Cylinder sets that require finitely many edge indicators to be `true` are
+measurable. -/
+lemma gnpCylinderMeasurable (n : ℕ) (S : Finset (EdgePairs n)) :
+    MeasurableSet {ω : EdgePairs n → Bool | ∀ e ∈ S, ω e = true} := by
+  classical
+  refine Finset.induction_on S ?base ?step
+  · simp
+  · intro e S he hS
+    have hBool : MeasurableSet ({true} : Set Bool) := by simp
+    have hEval : Measurable fun ω : EdgePairs n → Bool => ω e :=
+      measurable_pi_apply e
+    have hSingleton :
+        MeasurableSet {ω : EdgePairs n → Bool | ω e = true} := by
+      simpa [Set.preimage, Set.mem_setOf_eq]
+        using hBool.preimage hEval
+    have hSet :
+        {ω : EdgePairs n → Bool | ∀ e' ∈ insert e S, ω e' = true}
+          = {ω : EdgePairs n → Bool | ω e = true}
+              ∩ {ω : EdgePairs n → Bool | ∀ e' ∈ S, ω e' = true} := by
+      ext ω
+      simp [Set.mem_setOf_eq, Finset.forall_mem_insert]
+    refine hSet ▸ hSingleton.inter hS
+
 /-- Equivalence between labelled embeddings of `K₂` into a graph on `Fin n`
 and the injections whose images form an edge. -/
 noncomputable def k2EmbeddingEquiv {n : ℕ} (G : SimpleGraph (Fin n)) :
@@ -596,6 +619,117 @@ lemma countCopiesRV_completeGraph_two (n : ℕ)
   classical
   have hNat :=
     countCopies_completeGraph_two_sum
+      (n := n)
+      (G := gnp (n := n) ω)
+  have hCast := congrArg (fun t : ℕ => (t : ℝ)) hNat
+  simpa [countCopiesRV, Nat.cast_sum]
+    using hCast
+
+/-- Equivalence between labelled embeddings of `K₃` and injections whose images
+form a triangle in the host graph. -/
+noncomputable def k3EmbeddingEquiv {n : ℕ} (G : SimpleGraph (Fin n)) :
+    (SimpleGraph.completeGraph (Fin 3) ↪g G)
+      ≃ {f : Fin 3 ↪ Fin n //
+            G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)} := by
+  classical
+  refine
+    { toFun := ?_
+      invFun := ?_
+      left_inv := ?_
+      right_inv := ?_ }
+  · intro φ
+    refine ⟨φ.toEmbedding, ?_⟩
+    constructor
+    · have h :=
+        (φ.map_adj_iff (v := (0 : Fin 3)) (w := (1 : Fin 3))).mpr ?_
+      · simpa using h
+      · decide
+    constructor
+    · have h :=
+        (φ.map_adj_iff (v := (0 : Fin 3)) (w := (2 : Fin 3))).mpr ?_
+      · simpa using h
+      · decide
+    · have h :=
+        (φ.map_adj_iff (v := (1 : Fin 3)) (w := (2 : Fin 3))).mpr ?_
+      · simpa using h
+      · decide
+  · intro f
+    refine
+      { toEmbedding := f.1
+        map_rel_iff' := ?_ }
+    intro v w
+    fin_cases v <;> fin_cases w <;>
+      simp [SimpleGraph.completeGraph, f.2.1, f.2.2.1, f.2.2.2,
+        (f.2.1.symm), (f.2.2.1.symm), (f.2.2.2.symm)]
+  · intro φ
+    ext v
+    rfl
+  · intro f
+    ext v
+    rfl
+
+lemma countCopies_completeGraph_three_sum {n : ℕ}
+    (G : SimpleGraph (Fin n)) :
+    countCopies (SimpleGraph.completeGraph (Fin 3)) G
+      =
+        ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+          if G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)
+            then 1 else 0 := by
+  classical
+  have hEquiv := k3EmbeddingEquiv (G := G)
+  have hcard :
+      countCopies (SimpleGraph.completeGraph (Fin 3)) G
+        = Fintype.card
+            {f : Fin 3 ↪ Fin n //
+              G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)} := by
+    simpa [countCopies] using Fintype.card_congr hEquiv
+  have hFinset :
+      Fintype.card
+          {f : Fin 3 ↪ Fin n //
+            G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)}
+        = ((Finset.univ : Finset (Fin 3 ↪ Fin n)).filter fun f =>
+            G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)).card :=
+    by
+      simpa using
+        (Fintype.card_subtype
+          (p := fun f : Fin 3 ↪ Fin n =>
+            G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)))
+  have hSumNat :
+      ((Finset.univ : Finset (Fin 3 ↪ Fin n)).filter fun f =>
+          G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)).card
+        = ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+            if G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)
+              then 1 else 0 := by
+    simpa using
+      (Finset.card_filter (Finset.univ : Finset (Fin 3 ↪ Fin n))
+        (fun f =>
+          G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)))
+  calc
+    countCopies (SimpleGraph.completeGraph (Fin 3)) G
+        = Fintype.card
+            {f : Fin 3 ↪ Fin n //
+              G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)} :=
+          hcard
+    _ = ((Finset.univ : Finset (Fin 3 ↪ Fin n)).filter fun f =>
+            G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)).card :=
+          hFinset
+    _ = ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+            if G.Adj (f 0) (f 1) ∧ G.Adj (f 0) (f 2) ∧ G.Adj (f 1) (f 2)
+              then 1 else 0 := hSumNat
+
+lemma countCopiesRV_completeGraph_three (n : ℕ)
+    (ω : EdgePairs n → Bool) :
+    (countCopiesRV (n := n)
+        (SimpleGraph.completeGraph (Fin 3)) ω : ℝ)
+      =
+        ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+          (if (gnp (n := n) ω).Adj (f 0) (f 1)
+                ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+              then 1 else 0 : ℝ) := by
+  classical
+  have hNat :=
+    countCopies_completeGraph_three_sum
       (n := n)
       (G := gnp (n := n) ω)
   have hCast := congrArg (fun t : ℕ => (t : ℝ)) hNat
@@ -828,6 +962,261 @@ lemma expected_countCopies_completeGraph_two (n : ℕ) (p : ℝ)
       _ = (Nat.descFactorial n 2 : ℝ) * p := by simpa [hCardDesc]
   exact (hCombine.trans hSumEval)
 
+/-- Integral of the triangle indicator for a fixed labelled injection equals `p³`. -/
+lemma integral_triangleIndicator (n : ℕ) (p : ℝ)
+    (hp : 0 ≤ p ∧ p ≤ 1) (f : Fin 3 ↪ Fin n) :
+    ∫ ω,
+        (if (gnp (n := n) ω).Adj (f 0) (f 1)
+              ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+              ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+            then 1 else (0 : ℝ))
+        ∂(gnpSampleMeasure (n := n) (p := p) hp)
+      = p ^ (3 : ℕ) := by
+  classical
+  set μ := gnpSampleMeasure (n := n) (p := p) hp
+  have h01 : f 0 ≠ f 1 := by
+    have h := (show (0 : Fin 3) ≠ 1 by decide)
+    intro hEq; exact h (f.injective hEq)
+  have h02 : f 0 ≠ f 2 := by
+    have h := (show (0 : Fin 3) ≠ 2 by decide)
+    intro hEq; exact h (f.injective hEq)
+  have h12 : f 1 ≠ f 2 := by
+    have h := (show (1 : Fin 3) ≠ 2 by decide)
+    intro hEq; exact h (f.injective hEq)
+  let e01 : EdgePairs n := ⟨s(f 0, f 1), by simpa [Sym2.mk_isDiag_iff, h01]⟩
+  let e02 : EdgePairs n := ⟨s(f 0, f 2), by simpa [Sym2.mk_isDiag_iff, h02]⟩
+  let e12 : EdgePairs n := ⟨s(f 1, f 2), by simpa [Sym2.mk_isDiag_iff, h12]⟩
+  let S : Finset (EdgePairs n) := {e01, e02, e12}
+  let A := {ω : EdgePairs n → Bool | ∀ e ∈ S, ω e = true}
+  have hIndicator_eq :
+      (fun ω : EdgePairs n → Bool =>
+          if (gnp (n := n) ω).Adj (f 0) (f 1)
+                ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+            then 1 else (0 : ℝ))
+        = fun ω : EdgePairs n → Bool =>
+            Set.indicator A (fun _ => (1 : ℝ)) ω := by
+    funext ω
+    simp [A, S, Set.indicator, gnp_adj, e01, e02, e12,
+      h01, h02, h12, Sym2.mk_isDiag_iff, edgeIndicator_nonDiag,
+      Finset.forall_mem_insert]
+  have hMeas : MeasurableSet A := gnpCylinderMeasurable (n := n) S
+  have hIntegral_rewrite :
+      ∫ ω,
+          (if (gnp (n := n) ω).Adj (f 0) (f 1)
+                ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+              then 1 else (0 : ℝ))
+          ∂μ
+        = ∫ ω, Set.indicator A (fun _ => (1 : ℝ)) ω ∂μ := by
+    simpa using congrArg (fun g => ∫ ω, g ω ∂μ) hIndicator_eq
+  have hIndicator_eval :
+      ∫ ω, Set.indicator A (fun _ => (1 : ℝ)) ω ∂μ
+        = (μ A).toReal := by
+    simpa [measureReal_def]
+      using (MeasureTheory.integral_indicator_one (μ := μ) (s := A) hMeas)
+  have hCylinder : μ A = ENNReal.ofReal (p ^ S.card) := by
+    simpa [A] using gnpCylinderMeasure (n := n) (p := p) hp S
+  have hcard : S.card = 3 := by
+    classical
+    have h01' : e01 ≠ e02 := by
+      intro h
+      have hVal : s(f 0, f 1) = s(f 0, f 2) := congrArg Subtype.val h
+      have hCases := Sym2.eq_iff.mp hVal
+      cases hCases with
+      | inl hcases => exact h12 (by simpa using hcases.2)
+      | inr hcases => exact h02 (by simpa using hcases.1)
+    have h02' : e01 ≠ e12 := by
+      intro h
+      have hVal : s(f 0, f 1) = s(f 1, f 2) := congrArg Subtype.val h
+      have hCases := Sym2.eq_iff.mp hVal
+      cases hCases with
+      | inl hcases => exact h01 (by simpa using hcases.1)
+      | inr hcases => exact h02 (by simpa using hcases.1)
+    have h12' : e02 ≠ e12 := by
+      intro h
+      have hVal : s(f 0, f 2) = s(f 1, f 2) := congrArg Subtype.val h
+      have hCases := Sym2.eq_iff.mp hVal
+      cases hCases with
+      | inl hcases => exact h01 (by simpa using hcases.1)
+      | inr hcases =>
+          exact h02 (by simpa using hcases.1)
+    simp [S, h01', h02', h12']
+  have hp_nonneg : 0 ≤ p := hp.1
+  have hPow_nonneg : 0 ≤ p ^ (3 : ℕ) := pow_nonneg hp_nonneg _
+  have hToReal : (μ A).toReal = p ^ (3 : ℕ) := by
+    have := congrArg ENNReal.toReal hCylinder
+    simpa [hcard, ENNReal.toReal_ofReal, hp_nonneg, hPow_nonneg]
+      using this
+  calc
+    ∫ ω,
+        (if (gnp (n := n) ω).Adj (f 0) (f 1)
+              ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+              ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+            then 1 else (0 : ℝ))
+        ∂μ
+        = ∫ ω, Set.indicator A (fun _ => (1 : ℝ)) ω ∂μ := hIntegral_rewrite
+    _ = (μ A).toReal := hIndicator_eval
+    _ = p ^ (3 : ℕ) := hToReal
+
+/-- Expectation of labelled `K₃` copies equals the number of vertex injections times `p³`. -/
+lemma expected_countCopies_completeGraph_three (n : ℕ) (p : ℝ)
+    (hp : 0 ≤ p ∧ p ≤ 1) :
+    ∫ ω,
+        (countCopiesRV (n := n)
+            (SimpleGraph.completeGraph (Fin 3)) ω : ℝ)
+        ∂(gnpSampleMeasure (n := n) (p := p) hp)
+      = (Nat.descFactorial n 3 : ℝ) * p ^ (3 : ℕ) := by
+  classical
+  set μ := gnpSampleMeasure (n := n) (p := p) hp
+  have hfun :
+      (fun ω : EdgePairs n → Bool =>
+          (countCopiesRV (n := n)
+              (SimpleGraph.completeGraph (Fin 3)) ω : ℝ))
+        =
+          fun ω : EdgePairs n → Bool =>
+            ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+              (if (gnp (n := n) ω).Adj (f 0) (f 1)
+                    ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                    ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+                  then 1 else (0 : ℝ)) := by
+    funext ω
+    simpa using (countCopiesRV_completeGraph_three (n := n) (ω := ω))
+  have hIntegrable_term :
+      ∀ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+        Integrable
+          (fun ω : EdgePairs n → Bool =>
+            (if (gnp (n := n) ω).Adj (f 0) (f 1)
+                  ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                  ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+                then 1 else (0 : ℝ))) μ := by
+    intro f hf
+    have hConst : Integrable (fun _ : EdgePairs n → Bool => (1 : ℝ)) μ := by
+      simpa using (integrable_const (μ := μ) (c := (1 : ℝ)))
+    have h01 : f 0 ≠ f 1 := by
+      have h := (show (0 : Fin 3) ≠ 1 by decide)
+      intro hEq; exact h (f.injective hEq)
+    have h02 : f 0 ≠ f 2 := by
+      have h := (show (0 : Fin 3) ≠ 2 by decide)
+      intro hEq; exact h (f.injective hEq)
+    have h12 : f 1 ≠ f 2 := by
+      have h := (show (1 : Fin 3) ≠ 2 by decide)
+      intro hEq; exact h (f.injective hEq)
+    let e01 : EdgePairs n := ⟨s(f 0, f 1), by simpa [Sym2.mk_isDiag_iff, h01]⟩
+    let e02 : EdgePairs n := ⟨s(f 0, f 2), by simpa [Sym2.mk_isDiag_iff, h02]⟩
+    let e12 : EdgePairs n := ⟨s(f 1, f 2), by simpa [Sym2.mk_isDiag_iff, h12]⟩
+    let S : Finset (EdgePairs n) := {e01, e02, e12}
+    let A := {ω : EdgePairs n → Bool | ∀ e ∈ S, ω e = true}
+    have hIndicator_eq :
+        (fun ω : EdgePairs n → Bool =>
+            if (gnp (n := n) ω).Adj (f 0) (f 1)
+                  ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                  ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+                then 1 else (0 : ℝ))
+          = fun ω : EdgePairs n → Bool =>
+              Set.indicator A (fun _ => (1 : ℝ)) ω := by
+      funext ω
+      simp [A, S, Set.indicator, gnp_adj, e01, e02, e12,
+        h01, h02, h12, Sym2.mk_isDiag_iff, edgeIndicator_nonDiag,
+        Finset.forall_mem_insert]
+    have hIndicator := hConst.indicator (gnpCylinderMeasurable (n := n) S)
+    simpa [hIndicator_eq] using hIndicator
+  have hIntegralRewrite :
+      ∫ ω,
+          (countCopiesRV (n := n)
+              (SimpleGraph.completeGraph (Fin 3)) ω : ℝ)
+          ∂μ
+        =
+          ∫ ω,
+              ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+                (if (gnp (n := n) ω).Adj (f 0) (f 1)
+                      ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                      ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+                    then 1 else (0 : ℝ))
+              ∂μ := by
+    simpa using congrArg (fun g => ∫ ω, g ω ∂μ) hfun
+  have hIntegralSum :=
+    integral_finset_sum
+      (s := (Finset.univ : Finset (Fin 3 ↪ Fin n)))
+      (μ := μ)
+      (f := fun f ω =>
+        (if (gnp (n := n) ω).Adj (f 0) (f 1)
+              ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+              ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+            then 1 else (0 : ℝ)))
+      (by intro f hf; simpa using hIntegrable_term f hf)
+  have hCombine :
+      ∫ ω,
+          (countCopiesRV (n := n)
+              (SimpleGraph.completeGraph (Fin 3)) ω : ℝ)
+          ∂μ
+        =
+          ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+            ∫ ω,
+                (if (gnp (n := n) ω).Adj (f 0) (f 1)
+                      ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                      ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+                    then 1 else (0 : ℝ))
+                ∂μ := by
+    simpa using hIntegralRewrite.trans hIntegralSum
+  have hEachIntegral :
+      ∀ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+        ∫ ω,
+            (if (gnp (n := n) ω).Adj (f 0) (f 1)
+                  ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                  ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+                then 1 else (0 : ℝ))
+            ∂μ
+          = p ^ (3 : ℕ) := by
+    intro f hf
+    simpa [μ]
+      using integral_triangleIndicator (n := n) (p := p) hp (f := f)
+  have hSumConst :
+      ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+          p ^ (3 : ℕ)
+        = ((Finset.univ : Finset (Fin 3 ↪ Fin n)).card : ℝ) * p ^ (3 : ℕ) := by
+    classical
+    simp [Finset.sum_const, nsmul_eq_mul]
+  have hCardDesc :
+      ((Finset.univ : Finset (Fin 3 ↪ Fin n)).card : ℝ)
+        = (Nat.descFactorial n 3 : ℝ) := by
+    have hCardNat :
+        (Finset.univ : Finset (Fin 3 ↪ Fin n)).card
+          = Fintype.card (Fin 3 ↪ Fin n) := by
+      simpa using (Finset.card_univ (α := Fin 3 ↪ Fin n))
+    have hDesc :
+        Fintype.card (Fin 3 ↪ Fin n) = Nat.descFactorial n 3 := by
+      simpa [Fintype.card_fin]
+        using (Fintype.card_embedding_eq (α := Fin 3) (β := Fin n))
+    simpa [hCardNat, hDesc]
+  have hSumEval :
+      ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+          ∫ ω,
+              (if (gnp (n := n) ω).Adj (f 0) (f 1)
+                    ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                    ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+                  then 1 else (0 : ℝ))
+              ∂μ
+        = (Nat.descFactorial n 3 : ℝ) * p ^ (3 : ℕ) := by
+    calc
+      ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+            ∫ ω,
+                (if (gnp (n := n) ω).Adj (f 0) (f 1)
+                      ∧ (gnp (n := n) ω).Adj (f 0) (f 2)
+                      ∧ (gnp (n := n) ω).Adj (f 1) (f 2)
+                    then 1 else (0 : ℝ))
+                ∂μ
+          =
+            ∑ f ∈ (Finset.univ : Finset (Fin 3 ↪ Fin n)),
+                p ^ (3 : ℕ) := by
+              refine Finset.sum_congr rfl ?_
+              intro f hf
+              simpa using hEachIntegral f hf
+      _ = ((Finset.univ : Finset (Fin 3 ↪ Fin n)).card : ℝ)
+            * p ^ (3 : ℕ) := hSumConst
+      _ = (Nat.descFactorial n 3 : ℝ) * p ^ (3 : ℕ) := by
+        simpa [hCardDesc]
+  exact (hCombine.trans hSumEval)
 /-!### Stage 2 sanity checks
 
 The expectation formula for the copy-counting random variables predicts that
