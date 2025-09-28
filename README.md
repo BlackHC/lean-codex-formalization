@@ -69,15 +69,18 @@ Lean tasks:
    - [x] Confirm measurability and integrability obligations explicitly with Lean proofs (`measurable_gnp`, `integrable_countCopies`) and tag the statements with documentation notes referencing the paper. *(These are provided by `Stage2.measurable_gnp` and `Stage2.integrable_countCopies`.)*
 
 2. **Random variables counting subgraphs.**
-   - [ ] For each finite graph `H'`, define `countCopiesInRandomGraph` returning a random variable `Z_{H'}`. Use independence to show `ℙ[Z_{H'} ≥ t]` type statements.
-   - [ ] Prove the expectation formula `𝔼[Z_{H'}] = M_{H'} * p^{e(H')}` using Lean's independence lemmas.
-   - [ ] Check the expectation formula on small graphs by evaluating `simp`/`ring` proofs in the `Fin 2` or `Fin 3` cases, providing examples that the symbolic formula matches manual calculations.
+   - [x] Define `countCopiesRV` for a fixed pattern `H'` and prove measurability/integrability of the associated real-valued random variable.
+   - [x] Verify the expectation formula for edges by proving `expected_countCopies_completeGraph_two`.
+   - [x] Extend the expectation check to triangles via `expected_countCopies_completeGraph_three`.
+   - [ ] Generalize the expectation statement to an arbitrary finite graph `H'` and package it as a reusable lemma.
+   - [ ] Use the independence API to state tail bounds for fixed thresholds (`ℙ[Z_{H'} ≥ t]`).
 
 3. **Tail bounds via Markov.**
-   - [ ] Formalize Markov's inequality using `mathlib`'s version and instantiate it for `Z_{H'}`. This verifies the inequalities `p_E ≤ p_Etilde ≤ p_crit`.
+   - [ ] Port or restate Markov's inequality from `mathlib` in the form needed for `Z_{H'}`.
+   - [ ] Instantiate the inequality for the random variables above to derive the inequalities `p_E ≤ p_Etilde ≤ p_crit`.
    - [ ] Capture the instantiated inequalities as Lean lemmas (`pE_le_pEtilde`, `pEtilde_le_pCrit`) and add `@[simp]` or `lemma` wrappers to make them directly reusable in Stage 3.
 
-*Status (Stage 2):* The module `Formalization/Stage2/RandomGraph.lean` introduces the Bernoulli product measure over edge indicators, the random variable `gnp`, and the measurability lemma `Stage2.measurable_gnp`. The cylinder-measure statement computing the probability of prescribing finitely many edge indicators is currently recorded as a Stage 2 TODO so that the independence argument can be revisited alongside the upcoming expectation calculations.
+*Status (Stage 2):* `Formalization/Stage2/RandomGraph.lean` now develops the Bernoulli product measure over edge indicators, defines `gnp`, and proves measurability/integrability of `countCopiesRV`.  The file establishes cylinder-measure formulas for finitely many edge assignments and evaluates expectations for `K₂` and `K₃` embeddings, leaving the general expectation theorem and the subsequent Markov-based tail bounds for future work.
 
 ### Stage 3 — Threshold Definitions
 
