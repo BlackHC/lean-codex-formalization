@@ -12,9 +12,9 @@ simple graphs have no loops.  The definitions introduced here establish
 the random graph as a measurable function into `SimpleGraph (Fin n)` and
 record basic sanity checks on small examples.
 
-TODO (Stage 2): extend these constructions with the expectation and
-integrability lemmas described in the roadmap, notably the
-`integrable_countCopies` statement from §2 of the paper.
+ TODO (Stage 2): generalise the expectation calculations to arbitrary
+ patterns and record the Markov-style tail bounds needed for the
+ threshold inequalities in Stage 3.
 -/
 
 namespace Codex
