@@ -521,6 +521,68 @@ lemma gnpCylinderMeasure (n : ℕ) (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1)
     _ = ENNReal.ofReal (p ^ S.card) := by
       simpa using hpow.symm
 
+section EmbeddingEdges
+
+variable {k n : ℕ}
+
+lemma sym2_map_isDiag_iff {α β : Type*} {f : α ↪ β} {e : Sym2 α} :
+    (Sym2.map f e).IsDiag ↔ e.IsDiag := by
+  classical
+  refine Sym2.inductionOn e ?_
+  intro u v
+  constructor
+  · intro h
+    have hfuv : f u = f v := by
+      simpa [Sym2.map_pair_eq, Sym2.mk_isDiag_iff] using h
+    have huv : u = v := f.injective hfuv
+    simpa [Sym2.mk_isDiag_iff, huv]
+  · intro h
+    have huv : u = v := by
+      simpa [Sym2.mk_isDiag_iff] using h
+    simpa [Sym2.map_pair_eq, Sym2.mk_isDiag_iff, huv]
+
+lemma sym2_map_ne_diag {α β : Type*} {f : α ↪ β} {e : Sym2 α}
+    (h : ¬ e.IsDiag) : ¬ (Sym2.map f e).IsDiag := by
+  classical
+  have := (sym2_map_isDiag_iff (f := f) (e := e))
+  simpa [this] using h
+
+noncomputable def embeddingEdgePairs
+    (H : SimpleGraph (Fin k)) (f : Fin k ↪ Fin n) :
+    Finset (EdgePairs n) :=
+  let g : {e // e ∈ H.edgeFinset} ↪ EdgePairs n :=
+    { toFun := fun e =>
+        ⟨Sym2.map f e.1,
+          sym2_map_ne_diag (f := f) (e := e.1)
+            (H.not_isDiag_of_mem_edgeFinset e.2)⟩
+      inj' := by
+        intro e₁ e₂ h
+        apply Subtype.ext
+        refine (Sym2.map.injective f.injective) ?_
+        simpa using congrArg Subtype.val h }
+  (H.edgeFinset.attach).map g
+
+lemma embeddingEdgePairs_card
+    (H : SimpleGraph (Fin k)) (f : Fin k ↪ Fin n) :
+    (embeddingEdgePairs (H := H) f).card = H.edgeFinset.card := by
+  classical
+  let g : {e // e ∈ H.edgeFinset} ↪ EdgePairs n :=
+    { toFun := fun e =>
+        ⟨Sym2.map f e.1,
+          sym2_map_ne_diag (f := f) (e := e.1)
+            (H.not_isDiag_of_mem_edgeFinset e.2)⟩
+      inj' := by
+        intro e₁ e₂ h
+        apply Subtype.ext
+        refine (Sym2.map.injective f.injective) ?_
+        simpa using congrArg Subtype.val h }
+  have hmap := Finset.card_map (f := g) (s := H.edgeFinset.attach)
+  have hattach := Finset.card_attach (s := H.edgeFinset)
+  simpa [embeddingEdgePairs] using hmap.trans hattach
+
+end EmbeddingEdges
+
+
 /-- Cylinder sets that require finitely many edge indicators to be `true` are
 measurable. -/
 lemma gnpCylinderMeasurable (n : ℕ) (S : Finset (EdgePairs n)) :
