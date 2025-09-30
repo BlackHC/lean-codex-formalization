@@ -1389,6 +1389,106 @@ example :
   have hneq : (0 : Fin 2) ≠ 1 := by decide
   simp [gnp_adj, edgeIndicator, hpair, hneq]
 
+/-- An auxiliary predicate asserting that a vertex injection maps onto a clique. -/
+def isCliqueEmbedding {k n : ℕ} (G : SimpleGraph (Fin n))
+    (f : Fin k ↪ Fin n) : Prop :=
+  ∀ ⦃i j : Fin k⦄, i ≠ j → G.Adj (f i) (f j)
+
+/-- Embeddings of a complete graph correspond to injections whose images form a clique. -/
+noncomputable def completeGraphEmbeddingEquiv {k n : ℕ}
+    (G : SimpleGraph (Fin n)) :
+    (SimpleGraph.completeGraph (Fin k) ↪g G)
+      ≃ {f : Fin k ↪ Fin n // isCliqueEmbedding G f} := by
+  classical
+  refine
+    { toFun := ?_
+      invFun := ?_
+      left_inv := ?_
+      right_inv := ?_ }
+  · intro φ
+    refine ⟨φ.toEmbedding, ?_⟩
+    intro i j hij
+    have := (φ.map_adj_iff (v := i) (w := j)).mpr ?_
+    · simpa using this
+    · simpa [SimpleGraph.completeGraph, hij]
+  · intro f
+    refine
+      { toEmbedding := f.1
+        map_rel_iff' := ?_ }
+    intro i j
+    constructor
+    · intro hAdj
+      have hne : f.1 i ≠ f.1 j := G.ne_of_adj hAdj
+      have hij : i ≠ j := by
+        intro h
+        apply hne
+        simpa [h] using congrArg f.1 h
+      simpa [SimpleGraph.completeGraph, hij]
+    · intro hij
+      exact f.2 hij
+  · intro φ
+    ext i
+    rfl
+  · intro f
+    cases f with
+    | mk f hf =>
+      ext i
+      rfl
+
+/-- Counting labelled embeddings of a complete graph reduces to a sum over injections
+whose images form cliques. -/
+lemma countCopies_completeGraph_sum {k n : ℕ}
+    (G : SimpleGraph (Fin n)) :
+    countCopies (SimpleGraph.completeGraph (Fin k)) G
+      = ∑ f ∈ (Finset.univ : Finset (Fin k ↪ Fin n)),
+          if isCliqueEmbedding G f then 1 else 0 := by
+  classical
+  have hEquiv := completeGraphEmbeddingEquiv (G := G) (k := k)
+  have hcard :
+      countCopies (SimpleGraph.completeGraph (Fin k)) G
+        = Fintype.card {f : Fin k ↪ Fin n // isCliqueEmbedding G f} := by
+    simpa [countCopies] using Fintype.card_congr hEquiv
+  have hFinset :
+      Fintype.card {f : Fin k ↪ Fin n // isCliqueEmbedding G f}
+        = ((Finset.univ : Finset (Fin k ↪ Fin n)).filter fun f =>
+            isCliqueEmbedding G f).card := by
+    simpa using
+      (Fintype.card_subtype
+        (p := fun f : Fin k ↪ Fin n => isCliqueEmbedding G f))
+  have hSum :
+      ((Finset.univ : Finset (Fin k ↪ Fin n)).filter fun f =>
+          isCliqueEmbedding G f).card
+        = ∑ f ∈ (Finset.univ : Finset (Fin k ↪ Fin n)),
+            if isCliqueEmbedding G f then 1 else 0 := by
+    simpa using
+      (Finset.card_filter (Finset.univ : Finset (Fin k ↪ Fin n))
+        (fun f => isCliqueEmbedding G f))
+  calc
+    countCopies (SimpleGraph.completeGraph (Fin k)) G
+        = Fintype.card {f : Fin k ↪ Fin n // isCliqueEmbedding G f} := hcard
+    _ = ((Finset.univ : Finset (Fin k ↪ Fin n)).filter fun f =>
+            isCliqueEmbedding G f).card := hFinset
+    _ = ∑ f ∈ (Finset.univ : Finset (Fin k ↪ Fin n)),
+            if isCliqueEmbedding G f then 1 else 0 := hSum
+
+/-- The clique-counting random variable can be expressed as a sum over injections
+whose images are cliques. -/
+lemma countCopiesRV_completeGraph_sum {k n : ℕ}
+    (ω : EdgePairs n → Bool) :
+    (countCopiesRV (n := n)
+        (SimpleGraph.completeGraph (Fin k)) ω : ℝ)
+      = ∑ f ∈ (Finset.univ : Finset (Fin k ↪ Fin n)),
+          (if isCliqueEmbedding (gnp (n := n) ω) f then 1 else 0 : ℝ) := by
+  classical
+  have hNat :
+      countCopies (SimpleGraph.completeGraph (Fin k)) (gnp (n := n) ω)
+        = ∑ f ∈ (Finset.univ : Finset (Fin k ↪ Fin n)),
+            if isCliqueEmbedding (gnp (n := n) ω) f then 1 else 0 :=
+    countCopies_completeGraph_sum (G := gnp (n := n) ω)
+  have hCast := congrArg (fun t : ℕ => (t : ℝ)) hNat
+  simpa [countCopiesRV, Nat.cast_sum]
+    using hCast
+
 end Stage2
 
 end Codex
