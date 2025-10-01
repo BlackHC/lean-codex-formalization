@@ -190,6 +190,7 @@ lemma edgeCount_graphOfEdgeFinset_of_loopless {n : ℕ}
     · simp [Finset.mem_filter, hmem]
   simp [edgeCount_graphOfEdgeFinset, hfilter]
 
+
 /-- Sanity check: the complete graph on three labelled vertices has three edges. -/
 example : edgeCount (SimpleGraph.completeGraph (Fin 3)) = 3 := by
   classical
@@ -324,11 +325,12 @@ descending factorial bound. -/
 example :
     countCopies (SimpleGraph.completeGraph (Fin 2))
         (SimpleGraph.completeGraph (Fin 3)) ≤ 6 := by
-  have :=
+  have h :=
     countCopies_le_descFactorial
       (H := SimpleGraph.completeGraph (Fin 2))
       (G := SimpleGraph.completeGraph (Fin 3))
-  simpa [Nat.descFactorial] using this
+  simp [Nat.descFactorial] at h
+  exact h
 
 /-- Stage 1 lemma: isomorphic host graphs admit equally many labelled copies. -/
 lemma countCopies_congr_right {H : SimpleGraph α}
