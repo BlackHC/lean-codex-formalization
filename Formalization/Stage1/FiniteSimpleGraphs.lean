@@ -188,8 +188,10 @@ lemma edgeCount_graphOfEdgeFinset_of_loopless {n : ℕ}
     by_cases hmem : e ∈ edges
     · simp [Finset.mem_filter, hmem, hdiag _ hmem]
     · simp [Finset.mem_filter, hmem]
-  simpa [hfilter] using
-    edgeCount_graphOfEdgeFinset (n := n) (edges := edges)
+  have h := edgeCount_graphOfEdgeFinset (n := n) (edges := edges)
+  calc
+    edgeCount (graphOfEdgeFinset n edges) = (edges.filter fun e => ¬ e.IsDiag).card := h
+    _ = edges.card := by simpa [hfilter]
 
 /-- Sanity check: the complete graph on three labelled vertices has three edges. -/
 example : edgeCount (SimpleGraph.completeGraph (Fin 3)) = 3 := by
@@ -316,20 +318,24 @@ lemma countCopies_le_descFactorial {k n : ℕ}
       Fintype.card_le_of_injective
         (fun φ : H ↪g G => φ.toEmbedding) hinj
   have hDesc : Fintype.card (Fin k ↪ Fin n) = Nat.descFactorial n k := by
-    simpa [Fintype.card_fin] using
-      (Fintype.card_embedding_eq (α := Fin k) (β := Fin n))
-  simpa [hDesc] using hCard
+    calc
+      Fintype.card (Fin k ↪ Fin n)
+          = (Fintype.card (Fin n)).descFactorial (Fintype.card (Fin k)) :=
+            Fintype.card_embedding_eq (α := Fin k) (β := Fin n)
+      _ = Nat.descFactorial n k := by simp [Fintype.card_fin]
+  exact hDesc ▸ hCard
 
 /-- Sanity check: counting labelled copies of `K₂` inside `K₃` respects the
 descending factorial bound. -/
 example :
     countCopies (SimpleGraph.completeGraph (Fin 2))
         (SimpleGraph.completeGraph (Fin 3)) ≤ 6 := by
-  have :=
+  have h :=
     countCopies_le_descFactorial
       (H := SimpleGraph.completeGraph (Fin 2))
       (G := SimpleGraph.completeGraph (Fin 3))
-  simpa [Nat.descFactorial] using this
+  simp [Nat.descFactorial] at h
+  exact h
 
 /-- Stage 1 lemma: isomorphic host graphs admit equally many labelled copies. -/
 lemma countCopies_congr_right {H : SimpleGraph α}
@@ -412,7 +418,14 @@ example {n : ℕ} :
     countCopies (SimpleGraph.completeGraph (Fin 1))
         (graphOfEdgeFinset n (∅ : Finset (Sym2 (Fin n)))) = n := by
   classical
-  simpa [countCopies_singleVertex, Fintype.card_fin]
+  have h :=
+    countCopies_singleVertex
+      (G := graphOfEdgeFinset n (∅ : Finset (Sym2 (Fin n))))
+  calc
+    countCopies (SimpleGraph.completeGraph (Fin 1))
+        (graphOfEdgeFinset n (∅ : Finset (Sym2 (Fin n))))
+        = Fintype.card (Fin n) := h
+    _ = n := by simp [Fintype.card_fin]
 
 section DoubleCounting
 
