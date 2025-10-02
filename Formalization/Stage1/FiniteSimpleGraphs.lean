@@ -552,7 +552,7 @@ lemma countCopies_subtype_completeGraph (J : SimpleGraph α) (H : SimpleGraph β
 noncomputable def embeddingPairsEquiv (J : SimpleGraph α) (H : SimpleGraph β)
     (G : SimpleGraph γ)
     [Fintype α] [Fintype β] [Fintype γ] :
-    (Σ f : H ↪g G, J ↪g H)
+    (Σ (_ : H ↪g G), J ↪g H)
       ≃ Σ g : J ↪g G,
           {f : H ↪g G |
               Set.range g.toEmbedding ⊆ Set.range f.toEmbedding} := by
@@ -788,7 +788,7 @@ example :
   lemma card_sigma_embeddings
     {J : SimpleGraph α} {H : SimpleGraph β} {G : SimpleGraph γ}
     [Fintype α] [Fintype β] [Fintype γ] :
-    Fintype.card (Σ f : H ↪g G, J ↪g H)
+    Fintype.card (Σ (_ : H ↪g G), J ↪g H)
       = countCopies H G * countCopies J H := by
   classical
   have hSigma :
