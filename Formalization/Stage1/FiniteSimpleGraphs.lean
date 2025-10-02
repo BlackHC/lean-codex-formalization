@@ -191,14 +191,15 @@ lemma edgeCount_graphOfEdgeFinset_of_loopless {n : ℕ}
   have h := edgeCount_graphOfEdgeFinset (n := n) (edges := edges)
   calc
     edgeCount (graphOfEdgeFinset n edges) = (edges.filter fun e => ¬ e.IsDiag).card := h
-    _ = edges.card := by simpa [hfilter]
+    _ = edges.card := by
+      simp [hfilter]
 
 /-- Sanity check: the complete graph on three labelled vertices has three edges. -/
 example : edgeCount (SimpleGraph.completeGraph (Fin 3)) = 3 := by
   classical
   have h := edgeCount_completeGraph (n := 3)
-  have : Nat.choose 3 2 = 3 := by decide
-  simpa [this] using h
+  have hchoose : Nat.choose 3 2 = 3 := by decide
+  exact hchoose ▸ h
 
 /-- Sanity check: constructing `K₃` with one edge removed via `graphOfEdgeFinset`
 records exactly two edges. -/
